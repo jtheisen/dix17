@@ -2,7 +2,7 @@
 
 public abstract class DixVisitor
 {
-    public virtual void Visit(IDix dix)
+    public virtual void Visit(Dix dix)
     {
         foreach (var child in dix.GetMetadata())
         {
@@ -26,7 +26,7 @@ public class Formatter : DixVisitor
         this.level = level;
     }
 
-    public override void Visit(IDix dix)
+    public override void Visit(Dix dix)
     {
         writer.Write(new String(' ', level * 2));
 
@@ -68,7 +68,7 @@ public class Formatter : DixVisitor
         }
     }
 
-    public static String Format(IDix dix)
+    public static String Format(Dix dix)
     {
         var formatter = new Formatter();
 

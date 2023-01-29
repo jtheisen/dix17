@@ -4,7 +4,7 @@ namespace Dix17;
 
 public class Reflector
 {
-    public IDix GetDix(String? name, Object? target, Int32 depth)
+    public Dix GetDix(String? name, Object? target, Int32 depth)
     {
         if (depth == 0)
         {
@@ -43,7 +43,7 @@ public class Reflector
 
 public interface ISource
 {
-    IDix Query(IDix dix);
+    Dix Query(Dix dix);
 }
 
 public class RelfectionSource : ISource
@@ -57,12 +57,12 @@ public class RelfectionSource : ISource
         this.reflector = reflector;
     }
 
-    public IDix Query(IDix dix)
+    public Dix Query(Dix dix)
     {
         return Process(dix, target);
     }
 
-    IDix Process(IDix dix, Object target)
+    Dix Process(Dix dix, Object target)
     {
         return dix.IsLeaf()
             ? reflector.GetDix(dix.Name, target, 1)

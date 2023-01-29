@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dix17", "Dix17\Dix17.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestSuite", "TestSuite\TestSuite.csproj", "{CE96ECDC-7414-48A5-99B1-5E91BD7AC084}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Playground", "Playground\Playground.csproj", "{844B884C-29F3-4E1F-BECA-23871356DA9C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{CE96ECDC-7414-48A5-99B1-5E91BD7AC084}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CE96ECDC-7414-48A5-99B1-5E91BD7AC084}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CE96ECDC-7414-48A5-99B1-5E91BD7AC084}.Release|Any CPU.Build.0 = Release|Any CPU
+		{844B884C-29F3-4E1F-BECA-23871356DA9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{844B884C-29F3-4E1F-BECA-23871356DA9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{844B884C-29F3-4E1F-BECA-23871356DA9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{844B884C-29F3-4E1F-BECA-23871356DA9C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

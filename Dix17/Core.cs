@@ -11,81 +11,80 @@ public enum DixOperation
     Remove
 }
 
-//public struct Dix
-//{
-//    public DixOperation Operation { get; set; }
-
-//    public String? Name { get; set; }
-
-
-//}
-
-public class CDix : IDix
+public struct Dix
 {
-    public DixOperation Operation { get; }
+    public DixOperation Operation { get; set; }
 
-    public String? Name { get; }
+    public String? Name { get; set; }
 
+    public IDixContent? Content { get; set; }
+
+    public Boolean IsEmpty => Content is null;
+
+    public String? Unstructured => Content?.Unstructured;
+    public IEnumerable<Dix> Children => Content?.Children ?? Enumerable.Empty<Dix>();
+
+    public Dix WithName(String name) => this with { Name = name };
+    public Dix WithoutOperation() => this with { Operation = DixOperation.None };
+
+    public static Dix operator !(Dix dix) => dix with { Operation = DixOperation.Update };
+    public static Dix operator +(Dix dix) => dix with { Operation = DixOperation.Insert };
+    public static Dix operator -(Dix dix) => dix with { Operation = DixOperation.Remove };
+}
+
+public class CDixContent : IDixContent
+{
     public String? Unstructured { get; }
 
-    public IEnumerable<IDix> Children { get; }
+    public IEnumerable<Dix> Children { get; }
 
-    public CDix(String? name, String? unstructured, IEnumerable<IDix>? children)
+    public CDixContent(String? unstructured, IEnumerable<Dix>? children)
     {
-        Name = name;
         Unstructured = unstructured;
-        Children = children ?? Enumerable.Empty<IDix>();
+        Children = children ?? Enumerable.Empty<Dix>();
     }
 
-    public CDix(String? name, IEnumerable<IDix> children)
+    public CDixContent(IEnumerable<Dix> children)
     {
-        Name = name;
-        Children = children ?? Enumerable.Empty<IDix>();
+        Children = children ?? Enumerable.Empty<Dix>();
     }
 
-    public CDix(String? name, String unstructured)
+    public CDixContent(String unstructured)
     {
-        Name = name;
         Unstructured = unstructured;
-        Children = Enumerable.Empty<IDix>();
+        Children = Enumerable.Empty<Dix>();
     }
 }
 
 
 
-public interface IDix
+public interface IDixContent
 {
-    String? Name { get; }
-
     String? Unstructured { get; }
 
-    IEnumerable<IDix> Children { get; }
+    IEnumerable<Dix> Children { get; }
 }
 
 
-public class InheritedDix : IDix
+public class InheritedDixContent : IDixContent
 {
-    private readonly IDix baseDix;
-    private readonly String? name;
+    private readonly IDixContent baseDixContent;
 
-    public InheritedDix(IDix baseDix, String? name)
+    public InheritedDixContent(IDixContent baseDixContent)
     {
-        this.baseDix = baseDix;
-        this.name = name ?? baseDix.Name;
+        this.baseDixContent = baseDixContent;
     }
 
-    public String? Name => name;
+    public String? Unstructured => baseDixContent.Unstructured;
 
-    public String? Unstructured => baseDix.Unstructured;
-
-    public IEnumerable<IDix> Children => baseDix.Children;
+    public IEnumerable<Dix> Children => baseDixContent.Children;
 }
 
 public interface IStructureAwareness
 {
-    String Destructurize(IDix structure);
+    String Destructurize(Dix structure);
 
-    IDix Structurize(String unstructured);
+    Dix Structurize(String unstructured);
 }
 
 
@@ -94,46 +93,40 @@ public static class Extensions
     public static Boolean IsMetadataName(this String name)
         => name.Contains(':');
 
-    public static IEnumerable<IDix> GetStructure(this IDix dix)
+    public static IEnumerable<Dix> GetStructure(this Dix dix)
         => dix.Children.Where(d => !d.Name?.IsMetadataName() ?? true);
 
-    public static IEnumerable<IDix> GetMetadata(this IDix dix)
+    public static IEnumerable<Dix> GetMetadata(this Dix dix)
         => dix.Children.Where(d => d.Name?.IsMetadataName() ?? false);
 
-    public static Boolean IsLeaf(this IDix dix)
-        => dix.Children.FirstOrDefault() is null ? true : false;
+    public static Boolean IsLeaf(this Dix dix)
+        => dix.GetStructure().FirstOrDefault().IsEmpty ? true : false;
 
-    public static IDix? GetStructure(this IDix dix, String name)
+    public static Dix? GetStructure(this Dix dix, String name)
         => dix.GetStructure().SingleOrDefault(d => d.Name == name);
 
-    public static IDix? GetMetadata(this IDix dix, String name)
+    public static Dix? GetMetadata(this Dix dix, String name)
         => dix.GetMetadata().SingleOrDefault(d => d.Name == name);
 
-    public static Boolean HasMetadataFlag(this IDix dix, String name)
+    public static Boolean HasMetadataFlag(this Dix dix, String name)
         => dix.GetMetadata(name) is not null;
 
-    public static Boolean HasMetadata(this IDix dix, IDix metadata)
-        => dix.GetMetadata(metadata.Name!) is IDix d && d.Unstructured == metadata.Unstructured;
+    public static Boolean HasMetadata(this Dix dix, Dix metadata)
+        => dix.GetMetadata(metadata.Name!) is Dix d && d.Unstructured == metadata.Unstructured;
 
-    public static Boolean HasMetadataValue(this IDix dix, String name, String value)
-        => dix.GetMetadata(name) is IDix d && d.Unstructured == value;
+    public static Boolean HasMetadataValue(this Dix dix, String name, String value)
+        => dix.GetMetadata(name) is Dix d && d.Unstructured == value;
 
-    public static IDix WithName(this IDix dix, String name)
-        => new CDix(name, dix.Unstructured, dix.Children);
+    public static Dix WithStructure(this Dix dix, IEnumerable<Dix> structure)
+        => dix with { Content = new CDixContent(dix.Unstructured, dix.GetMetadata().Concat(structure)) };
 
-    public static IDix WithStructure(this IDix dix, IEnumerable<IDix> structure)
-        => new CDix(dix.Name, dix.Unstructured, dix.GetMetadata().Concat(structure));
+    public static Dix AddMetadata(this Dix dix, IEnumerable<Dix> metadata)
+        => dix with { Content = new CDixContent(dix.Unstructured, dix.Children.Concat(metadata)) };
 
-    public static IDix WithOperation(this IDix dix, DixOperation operation)
-        => new CDix(dix.Name, dix.Unstructured, dix.Children, operation);
+    public static Dix AddMetadata(this Dix dix, Dix metadata)
+        => dix with { Content = new CDixContent(dix.Unstructured, dix.Children.Concat(new[] { metadata })) };
 
-    public static IDix AddMetadata(this IDix dix, IEnumerable<IDix> metadata)
-        => new CDix(dix.Name, dix.Unstructured, dix.Children.Concat(metadata));
-
-    public static IDix AddMetadata(this IDix dix, IDix metadata)
-        => new CDix(dix.Name, dix.Unstructured, dix.Children.Concat(new[] { metadata }));
-
-    public static String Format(this IDix dix)
+    public static String Format(this Dix dix)
         => Formatter.Format(dix);
 }
 

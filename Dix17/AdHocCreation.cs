@@ -2,22 +2,22 @@
 
 public static class AdHocCreation
 {
-    public static IDix D(String? name, String unstructured, params IDix[] children)
-        => new CDix(name, unstructured, children);
+    public static Dix D(String? name, String unstructured, IEnumerable<Dix> children)
+        => new Dix { Name = name, Content = new CDixContent(unstructured, children) };
 
-    public static IDix D(String? name, String unstructured, IEnumerable<IDix> children)
-        => new CDix(name, unstructured, children);
+    public static Dix D(String? name, IEnumerable<Dix> children)
+        => new Dix { Name = name, Content = new CDixContent(children) };
 
-    public static IDix D(String? name, IEnumerable<IDix> children)
-        => new CDix(name, children);
+    public static Dix D(String? name, String unstructured, params Dix[] children)
+        => D(name, unstructured, children.OfType<Dix>());
 
-    public static IDix D(String? name, IEnumerable<IDix> children, params IDix[] moreChildren)
-        => new CDix(name, children.Concat(moreChildren));
+    public static Dix D(String? name, IEnumerable<Dix> children, params Dix[] moreChildren)
+        => D(name, children.Concat(moreChildren));
 
-    public static IDix D(String? name, params IDix[] children)
-        => new CDix(name, children);
+    public static Dix D(String? name, params Dix[] children)
+        => D(name, children.OfType<Dix>());
 
-    public static IDix D(String? name, String unstructured)
-        => new CDix(name, unstructured);
+    public static Dix D(String? name, String unstructured)
+        => D(name, unstructured, Enumerable.Empty<Dix>());
 
 }

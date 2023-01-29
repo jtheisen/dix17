@@ -12,14 +12,14 @@ namespace Dix17;
 
 public class JsonStructureAwareness : IStructureAwareness
 {
-    public String Destructurize(IDix structure)
+    public String Destructurize(Dix structure)
     {
         var jToken = MakeToken(structure);
 
         return JsonConvert.SerializeObject(jToken, Formatting.Indented);
     }
 
-    public IDix Structurize(String unstructured)
+    public Dix Structurize(String unstructured)
     {
         var deserialized = JsonConvert.DeserializeObject<JToken>(unstructured);
 
@@ -28,13 +28,13 @@ public class JsonStructureAwareness : IStructureAwareness
         return MakeDix("structurized", deserialized);
     }
 
-    static JToken MakeToken(IDix dix)
+    static JToken MakeToken(Dix dix)
     {
         var jsonType = dix.GetMetadata(Metadata.JsonType);
 
         if (jsonType is null) throw new Exception();
 
-        switch (jsonType.Unstructured)
+        switch (jsonType?.Unstructured)
         {
             case Metadata.JsonTypeBoolean: return Boolean.Parse(dix.Unstructured!);
             case Metadata.JsonTypeString: return dix.Unstructured!;
@@ -52,7 +52,7 @@ public class JsonStructureAwareness : IStructureAwareness
         }
     }
 
-    static IDix MakeDix(String? name, JToken token)
+    static Dix MakeDix(String? name, JToken token)
     {
         if (token is JObject o)
         {
