@@ -21,14 +21,25 @@ public class Formatter : DixVisitor
     StringWriter writer = new StringWriter();
     Int32 level;
 
-    public Formatter(Int32 level = 0)
+    public Formatter(Int32 level = 1)
     {
         this.level = level;
     }
 
+    Char GetOperationCharacter(DixOperation o) => o switch
+    {
+        DixOperation.None => ' ',
+        DixOperation.Update => '=',
+        DixOperation.Insert => '+',
+        DixOperation.Remove => '-',
+        _ => '?'
+    };
+
     public override void Visit(Dix dix)
     {
-        writer.Write(new String(' ', level * 2));
+        writer.Write(new String(' ', level * 2 - 2));
+        writer.Write(GetOperationCharacter(dix.Operation));
+        writer.Write(' ');
 
         if (dix.Name is not null)
         {

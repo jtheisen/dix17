@@ -27,6 +27,7 @@ public struct Dix
     public Dix WithName(String name) => this with { Name = name };
     public Dix WithoutOperation() => this with { Operation = DixOperation.None };
 
+    public static Dix operator ~(Dix dix) => dix with { Operation = DixOperation.None };
     public static Dix operator !(Dix dix) => dix with { Operation = DixOperation.Update };
     public static Dix operator +(Dix dix) => dix with { Operation = DixOperation.Insert };
     public static Dix operator -(Dix dix) => dix with { Operation = DixOperation.Remove };
@@ -107,6 +108,9 @@ public static class Extensions
 
     public static Dix? GetMetadata(this Dix dix, String name)
         => dix.GetMetadata().SingleOrDefault(d => d.Name == name);
+
+    public static String? GetMetadataValue(this Dix dix, String name)
+        => dix.GetMetadata().SingleOrDefault(d => d.Name == name).Unstructured;
 
     public static Boolean HasMetadataFlag(this Dix dix, String name)
         => dix.GetMetadata(name) is not null;

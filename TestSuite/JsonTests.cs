@@ -21,30 +21,30 @@ public class JsonTests
 
         Assert.AreEqual(
             @"
-structurized
-  x:json-type = object
-  some-bool = True
-    x:json-type = boolean
-  some-null = null
-    x:json-type = null
-  some-array
-    x:json-type = array
-    - = 42
-      x:json-type = number
-    - = null
-      x:json-type = null
-    - = True
-      x:json-type = boolean
-    - = text
-      x:json-type = string
-    -
-      x:json-type = object
-    -
-      x:json-type = array
-  empty-object
+  structurized
     x:json-type = object
-".TrimStart(),
-            json.Structurize(testJson).Format()
+    some-bool = True
+      x:json-type = boolean
+    some-null = null
+      x:json-type = null
+    some-array
+      x:json-type = array
+      - = 42
+        x:json-type = number
+      - = null
+        x:json-type = null
+      - = True
+        x:json-type = boolean
+      - = text
+        x:json-type = string
+      -
+        x:json-type = object
+      -
+        x:json-type = array
+    empty-object
+      x:json-type = object
+".Frame(),
+            json.Structurize(testJson).Format().Frame()
         );
     }
 

@@ -20,6 +20,7 @@ public static class Metadata
     public const String JsonTypeNumber = "number";
     public const String JsonTypeNull = "null";
 
+    public const String ReflectedClrType = "reflection:clr-type";
     public const String ReflectedType = "reflection:type";
 
     public const String ReflectedTypeObject = "object";
