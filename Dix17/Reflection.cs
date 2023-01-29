@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
+using System.ComponentModel;
+using System.Reflection;
 
 namespace Dix17;
 
@@ -7,15 +9,84 @@ public interface ISource
     Dix Query(Dix dix);
 }
 
+public class NicerTypeConverter
+{
+    TypeConverter converter;
+    Boolean canConvert;
+
+    public NicerTypeConverter(Type type)
+    {
+        converter = TypeDescriptor.GetConverter(type);
+        canConvert = converter.CanConvertFrom(typeof(String)) && converter.CanConvertTo(typeof(String));
+    }
+
+    public Boolean CanConvert => canConvert;
+
+    public String ToString(Object value)
+        => converter.ConvertToInvariantString(value) ?? throw new Exception("TypeConverter failed us");
+
+    public Object FromString(String text)
+        => converter.ConvertFromInvariantString(text) ?? throw new Exception($"TypeConverter failed us");
+
+    static ConcurrentDictionary<Type, NicerTypeConverter> instances = new ConcurrentDictionary<Type, NicerTypeConverter>();
+
+    public static NicerTypeConverter GetConverter(Type type) => instances.GetOrAdd(type, t => new NicerTypeConverter(t));
+}
+
+public class TypeAwareness
+{
+    private readonly Assembly[] assemblies;
+
+    public TypeAwareness(params Assembly[] extraAssemblies)
+    {
+        this.assemblies = new[] { typeof(String).Assembly }.Concat(extraAssemblies).ToArray();
+    }
+
+    public String CreateText(Object instance)
+    {
+        var type = instance.GetType();
+
+        var converter = NicerTypeConverter.GetConverter(type);
+
+        return converter.ToString(instance);
+    }
+
+    public Object CreateObject(Type? type, String? text, String? typeName)
+    {
+        if (typeName is not null)
+        {
+            type = GetType(typeName);
+        }
+
+        if (type is null) throw new Exception($"Dont have a type");
+
+        if (text is not null)
+        {
+            var converter = NicerTypeConverter.GetConverter(type);
+
+            return converter.FromString(text);
+        }
+        else
+        {
+            return Activator.CreateInstance(type)!;
+        }
+    }
+
+    Type GetType(String name)
+    {
+        return assemblies.Select(a => a.GetType(name)).FirstOrDefault(t => t is not null) ?? throw new Exception($"Can't resolve type {name}");
+    }
+}
+
 public class ReflectionSource : ISource
 {
     private readonly Object target;
-    private readonly Assembly[] assemblies;
+    private readonly TypeAwareness typeAwareness;
 
-    public ReflectionSource(Object target, Assembly[] assemblies)
+    public ReflectionSource(Object target, TypeAwareness typeAwareness)
     {
         this.target = target;
-        this.assemblies = assemblies;
+        this.typeAwareness = typeAwareness;
     }
 
     public Dix Query(Dix dix)
@@ -83,37 +154,7 @@ public class ReflectionSource : ISource
     {
         var clrType = dix.GetMetadataValue(Metadata.ReflectedClrType);
 
-        if (clrType is not null)
-        {
-            type = GetType(clrType);
-        }
-
-        if (type == typeof(String))
-        {
-            return dix.Unstructured ?? "";
-        }
-        else if (type.IsValueType)
-        {
-            if (dix.Unstructured is null) throw new Exception();
-
-            return GetValueType(type, dix.Unstructured);
-        }
-
-        var instance = Activator.CreateInstance(type);
-
-        if (instance is null) throw new Exception();
-
-        return instance;
-    }
-
-    Object GetValueType(Type type, String text)
-    {
-        return Convert.ChangeType(text, type);
-    }
-
-    Type GetType(String name)
-    {
-        return assemblies.Select(a => a.GetType(name)).FirstOrDefault(t => t is not null) ?? throw new Exception($"Can't resolve type {name}");
+        return typeAwareness.CreateObject(type, dix.Unstructured, clrType);
     }
 
     Dix Update(Dix dix, Object target)

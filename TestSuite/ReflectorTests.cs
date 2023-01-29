@@ -13,12 +13,14 @@ public class ReflectorTests
 
     public ReflectorTests()
     {
-        source = new ReflectionSource(testObject, new[] { typeof(String).Assembly });
+        source = new ReflectionSource(testObject, new TypeAwareness(typeof(String).Assembly));
     }
 
     public class NestedTestType
     {
         public Int32 Number { get; set; }
+
+        public DateTimeOffset DateTimeOffset { get; set; }
     }
 
     public class TestType
@@ -56,7 +58,8 @@ public class ReflectorTests
             D("query",
                 D("NestedObject",
                     D("reflection:clr-type", "TestSuite.ReflectorTests+NestedTestType"),
-                    D("Number")
+                    D("Number"),
+                    D("DateTimeOffset")
                 )
             ),
             source.Query(D("query", D("NestedObject"))),
