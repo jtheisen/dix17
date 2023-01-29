@@ -29,4 +29,8 @@ public static class Metadata
     public const String ReflectedTypeString = "string";
     public const String ReflectedTypeNumber = "number";
     public const String ReflectedTypeNull = "null";
+
+    public const String FileSystemEntry = "fs:entry";
+    public const String FileSystemEntryFile = "file";
+    public const String FileSystemEntryDirectory = "directory";
 }
