@@ -35,34 +35,6 @@ public class ReflectorTests
     TestType testObject = new TestType();
 
     [TestMethod]
-    public void TestReflection()
-    {
-        var reflector = new Reflector();
-
-        Assert.AreEqual(
-            @"
-  root
-    reflection:type = object
-    String = Hello!
-      reflection:type = string
-    Boolean = True
-      reflection:type = boolean
-    NestedObject
-      reflection:type = object
-      Number = 42
-        reflection:type = number
-    Array
-      reflection:type = enumerable
-      - = 1
-        reflection:type = number
-      - = 2
-        reflection:type = number
-".Frame(),
-            reflector.GetDix("root", testObject, 10).Format().Frame()
-        );
-    }
-
-    [TestMethod]
     public void TestSourceSimple()
     {
         Assert.AreEqual(@"
@@ -80,15 +52,18 @@ public class ReflectorTests
     [TestMethod]
     public void TestSourceNestedObject()
     {
-        Assert.AreEqual(@"
-  query
-    NestedObject = TestSuite.ReflectorTests+NestedTestType
-      reflection:clr-type = TestSuite.ReflectorTests+NestedTestType
-      Number
-".Frame(),
-            source.Query(D("query", D("NestedObject"))).Format().Frame()
+        DixValidator.AssertEqual(
+            D("query",
+                D("NestedObject",
+                    D("reflection:clr-type", "TestSuite.ReflectorTests+NestedTestType"),
+                    D("Number")
+                )
+            ),
+            source.Query(D("query", D("NestedObject"))),
+            DixValidatorFlags.IgnoreExtraUnstructuredIfNullInExpected
         );
     }
+
 
     [TestMethod]
     public void TestStringModification()

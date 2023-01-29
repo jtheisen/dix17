@@ -1,47 +1,6 @@
-﻿using System.Collections;
-using System.Reflection;
-using System.Xml.Linq;
+﻿using System.Reflection;
 
 namespace Dix17;
-
-public class Reflector
-{
-    public Dix GetDix(String? name, Object? target, Int32 depth)
-    {
-        if (depth == 0)
-        {
-            return D(name);
-        }
-        else if (target is null)
-        {
-            return D(name, D(Metadata.ReflectedType, Metadata.ReflectedTypeNull));
-        }
-        else if (target is Boolean flag)
-        {
-            return D(name, flag.ToString(), D(Metadata.ReflectedType, Metadata.ReflectedTypeBoolean));
-        }
-        else if (target is String text)
-        {
-            return D(name, text, D(Metadata.ReflectedType, Metadata.ReflectedTypeString));
-        }
-        else if (target is IEnumerable items)
-        {
-            return D(name, from i in items.Cast<Object>() select GetDix(null, i, depth - 1), D(Metadata.ReflectedType, Metadata.ReflectedTypeEnumerable));
-        }
-        else if (numberTypes.Contains(target.GetType()))
-        {
-            return D(name, target.ToString()!, D(Metadata.ReflectedType, Metadata.ReflectedTypeNumber));
-        }
-        else
-        {
-            var type = target.GetType();
-
-            return D(name, from p in type.GetProperties() select GetDix(p.Name, p.GetValue(target), depth - 1), D(Metadata.ReflectedType, Metadata.ReflectedTypeObject));
-        }
-    }
-
-    static readonly Type[] numberTypes = new[] { typeof(Int32), typeof(Double) }; 
-}
 
 public interface ISource
 {
