@@ -10,18 +10,18 @@ public abstract class AbstractSource<Node> : ISource
         return Process(dix, null, GetRoot());
     }
 
-    Dix Process(Dix dix, Node? parentTarget, Node target) => dix.Operation switch
+    Dix Process(Dix dix, Node? parentTarget, Node? target) => dix.Operation switch
     {
         DixOperation.None => dix.IsLeaf()
-            ? GetTeaser(dix.Name ?? throw new Exception($"No name"), target)
+            ? GetTeaser(dix.Name ?? throw new Exception($"No name"), target ?? throw new Exception($"No node for {dix.Name}"))
             : D(dix.Name,
                 from d in dix.GetStructure()
-                let c = GetChild(target, d.Name ?? throw new Exception($"No name")) ?? throw new Exception()
+                let c = GetChild(target ?? throw new Exception($"No node for {dix.Name}"), d.Name ?? throw new Exception($"No name"))
                 select Process(d, target, c)
             ),
-        DixOperation.Update => Update(dix, target),
-        DixOperation.Insert => Insert(dix, target),
-        DixOperation.Remove => Remove(dix, target),
+        DixOperation.Update => Update(dix, parentTarget, target ?? throw new Exception($"No node to update for {dix.Name}")),
+        DixOperation.Insert => InsertInternal(dix, parentTarget, target),
+        DixOperation.Remove => RemoveInternal(dix, parentTarget, target),
         _ => throw new Exception($"Unsupported operation {dix.Operation}")
     };
 
@@ -31,7 +31,7 @@ public abstract class AbstractSource<Node> : ISource
 
     protected abstract Dix GetTeaser(String name, Node node);
 
-    protected virtual Dix Update(Dix dix, Node target)
+    protected virtual Dix Update(Dix dix, Node? parentTarget, Node target)
     {
         if (dix.Unstructured is String unstructured)
         {
@@ -45,12 +45,30 @@ public abstract class AbstractSource<Node> : ISource
         }
     }
 
+    Dix RemoveInternal(Dix dix, Node? parentTarget, Node? target)
+    {
+        if (target is null) throw new Exception($"No node to remove under {dix.Name}");
+
+        if (parentTarget is null) throw new Exception($"Can't remove the root");
+
+        return Remove(dix, parentTarget, target);
+    }
+
+    Dix InsertInternal(Dix dix, Node? parentTarget, Node? target)
+    {
+        if (target is not null) throw new Exception($"Already have a node under {dix.Name}");
+
+        if (parentTarget is null) throw new Exception($"Can't insert the root");
+
+        return Insert(dix, parentTarget);
+    }
+
     protected virtual Boolean CanUpdate(Node target) => false;
     protected virtual Boolean CanRemove(Node parentNode, Node target) => false;
     protected virtual Boolean CanInsert(Node parentNode, Node target) => false;
 
-    protected virtual Dix Insert(Dix dix, Node target) => throw new NotImplementedException();
-    protected virtual Dix Remove(Dix dix, Node target) => throw new NotImplementedException();
+    protected virtual Dix Insert(Dix dix, Node parentTarget) => throw new NotImplementedException();
+    protected virtual Dix Remove(Dix dix, Node parentTarget, Node target) => throw new NotImplementedException();
 
     protected virtual Dix UpdateStructured(Dix dix, Node parentTarget) => throw new NotImplementedException();
     protected virtual Dix UpdateUnstructured(Node parentTarget, String unstructured) => throw new NotImplementedException();
@@ -59,6 +77,8 @@ public abstract class AbstractSource<Node> : ISource
 public class MockupFileSystemSource : AbstractSource<MockupFileSystemSource.Node>
 {
     DirectoryNode root = new DirectoryNode();
+
+    public DirectoryNode Root => root;
 
     public MockupFileSystemSource(Action<DirectoryNode>? content = null)
     {
@@ -73,8 +93,6 @@ public class MockupFileSystemSource : AbstractSource<MockupFileSystemSource.Node
 
     protected override Node GetRoot() => root;
 
-    protected override Boolean CanUpdate(Node target) => target is FileNode;
-
     protected override Dix GetTeaser(String name, Node node) => node switch
     {
         FileNode f => D(name, f.Content),
@@ -82,9 +100,68 @@ public class MockupFileSystemSource : AbstractSource<MockupFileSystemSource.Node
         _ => throw new Exception()
     };
 
+    protected override Boolean CanUpdate(Node target) => target is FileNode;
+
+    protected override Dix Remove(Dix dix, Node parentTarget, Node target)
+    {
+        if (parentTarget is DirectoryNode d && dix.Name is String name)
+        {
+            d.Children.Remove(name);
+
+            return dix;
+        }
+        else
+        {
+            throw new Exception();
+        }
+    }
+
+    protected override Dix Insert(Dix dix, Node parentTarget)
+    {
+        if (parentTarget is DirectoryNode d && dix.Name is String name)
+        {
+            var t = dix.GetMetadataValue(Metadata.FileSystemEntry);
+
+            if (t is null) throw new Exception();
+
+            Node node;
+
+            switch (t)
+            {
+                case Metadata.FileSystemEntryFile:
+                    if (dix.Unstructured is String u)
+                    {
+                        node = new FileNode { Content = u };
+                    }
+                    else
+                    {
+                        throw new Exception();
+                    }
+                    break;
+                case Metadata.FileSystemEntryDirectory:
+                    node = new DirectoryNode();
+                    break;
+                default:
+                    throw new Exception();
+            }
+
+            d.Children.Add(name, node);
+
+            return dix;
+        }
+        else
+        {
+            throw new Exception();
+        }
+    }
+
     public abstract class Node
     {
         public abstract String EntryTypeMetadataValue { get; }
+
+        public virtual Node this[String name] => throw new Exception($"Not a directory");
+
+        public virtual String Content { get => throw new Exception($"Not a file"); set { } }
     }
 
     public class DirectoryNode : Node
@@ -92,6 +169,8 @@ public class MockupFileSystemSource : AbstractSource<MockupFileSystemSource.Node
         public override String EntryTypeMetadataValue => Metadata.FileSystemEntryDirectory;
 
         public Dictionary<String, Node> Children { get;  } = new Dictionary<String, Node>();
+
+        public override Node this[String name] => Children.GetValueOrDefault(name);
 
         public DirectoryNode AddFile(String name, String content)
         {
@@ -112,6 +191,6 @@ public class MockupFileSystemSource : AbstractSource<MockupFileSystemSource.Node
     {
         public override String EntryTypeMetadataValue => Metadata.FileSystemEntryFile;
 
-        public String Content { get; set; } = "";
+        public override String Content { get; set; } = "";
     }
 }

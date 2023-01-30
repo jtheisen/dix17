@@ -73,11 +73,11 @@ public class FormattingTests
     {
         Assert.AreEqual(
             """
-    D("root",
-        D("some-string", "foo"),
-        D("some-list",
-            D("item1"),
-            D("item2")))
+            D("root",
+                D("some-string", "foo"),
+                D("some-list",
+                    D("item1"),
+                    D("item2")))
 """.Frame(),
             D("root",
                 D("some-string", "foo"),
@@ -94,11 +94,11 @@ public class FormattingTests
     {
         Assert.AreEqual(
             """
-    D("root",
-        D("some-string", @"fo\o"),
-        D(@"some""list",
-            D("item1"),
-            D("item2")))
+            D("root",
+                D("some-string", @"fo\o"),
+                D(@"some""list",
+                    D("item1"),
+                    D("item2")))
 """.Frame(),
             D("root",
                 D("some-string", @"fo\o"),

@@ -3,7 +3,7 @@
 [TestClass]
 public class FileSystemTests
 {
-    ISource source;
+    MockupFileSystemSource source;
 
     public FileSystemTests()
     {
@@ -30,5 +30,37 @@ public class FileSystemTests
                     D("fs:entry", "directory"))),
             source.Query(D("query"))
         );
+    }
+
+    [TestMethod]
+    public void TestSpecificQuery()
+    {
+        DixValidator.AssertEqual(
+            D("query",
+                D("src",
+                    D("core.cs",
+                        D("fs:entry", "file")),
+                    D("extensions.cs",
+                        D("fs:entry", "file")))),
+            source.Query(D("query", D("src")))
+        );
+    }
+
+    [TestMethod]
+    public void TestInsertion()
+    {
+        source.Query(D("query", D("docs", +D("readme.md", "testcontent!", D(Metadata.FileSystemEntry, Metadata.FileSystemEntryFile)))));
+
+        Assert.AreEqual("testcontent!", source.Root["docs"]["readme.md"].Content);
+    }
+
+    [TestMethod]
+    public void TestRemoval()
+    {
+        Assert.IsNotNull(source.Root["docs"]["tutorial.md"]);
+
+        source.Query(D("query", D("docs", -D("tutorial.md"))));
+
+        Assert.IsNull(source.Root["docs"]["tutorial.md"]);
     }
 }

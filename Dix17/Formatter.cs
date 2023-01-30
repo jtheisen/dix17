@@ -105,6 +105,11 @@ public class CSharpFormatter : AbstractFormatter<CSharpFormatter>
 
     Boolean pendingNewline = false;
 
+    public CSharpFormatter()
+    {
+        level = 3;
+    }
+
     public override void Visit(Dix dix)
     {
         if (pendingNewline)
