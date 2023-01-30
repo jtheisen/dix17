@@ -11,6 +11,7 @@ public enum DixOperation
     Remove
 }
 
+[DebuggerDisplay("{ToString()}")]
 public struct Dix
 {
     public DixOperation Operation { get; set; }
@@ -24,13 +25,29 @@ public struct Dix
     public String? Unstructured => Content?.Unstructured;
     public IEnumerable<Dix> Children => Content?.Children ?? Enumerable.Empty<Dix>();
 
-    public Dix WithName(String name) => this with { Name = name };
+    public Dix WithName(String? name) => this with { Name = name };
     public Dix WithoutOperation() => this with { Operation = DixOperation.None };
 
     public static Dix operator ~(Dix dix) => dix with { Operation = DixOperation.None };
     public static Dix operator !(Dix dix) => dix with { Operation = DixOperation.Update };
     public static Dix operator +(Dix dix) => dix with { Operation = DixOperation.Insert };
     public static Dix operator -(Dix dix) => dix with { Operation = DixOperation.Remove };
+
+
+    public override String ToString()
+    {
+        var name = Name ?? "_";
+
+        var ucontent = Unstructured is not null ? "=" + Unstructured : "";
+
+        var n = 3;
+
+        var structure = this.GetStructure().Take(n).ToArray();
+
+        var scontent = $"[{String.Join(", ", structure.Take(n - 1).Select(d => d.Name))}]";
+
+        return $"{name}{ucontent}{scontent}";
+    }
 }
 
 public class CDixContent : IDixContent
@@ -89,7 +106,7 @@ public interface IStructureAwareness
 }
 
 
-public static class Extensions
+public static partial class Extensions
 {
     public static Boolean IsMetadataName(this String name)
         => name.Contains(':');
@@ -122,7 +139,13 @@ public static class Extensions
         => dix.GetMetadata(name) is Dix d && d.Unstructured == value;
 
     public static Dix WithStructure(this Dix dix, IEnumerable<Dix> structure)
-        => dix with { Content = new CDixContent(dix.Unstructured, dix.GetMetadata().Concat(structure)) };
+        => dix with { Content = new CDixContent(dix.Unstructured, dix.GetStructure().Concat(structure)) };
+
+    public static Dix AddStructure(this Dix dix, Dix structure)
+        => dix.WithStructure(structure.Singleton());
+
+    public static Dix WithContent(this Dix dix, Dix content)
+        => dix with { Content = content.Content };
 
     public static Dix AddMetadata(this Dix dix, IEnumerable<Dix> metadata)
         => dix with { Content = new CDixContent(dix.Unstructured, dix.Children.Concat(metadata)) };
