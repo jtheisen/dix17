@@ -16,16 +16,31 @@ public abstract class DixVisitor
     }
 }
 
-public class Formatter : DixVisitor
+public abstract class AbstractFormatter<D> : DixVisitor
+    where D : AbstractFormatter<D>, new()
 {
-    StringWriter writer = new StringWriter();
-    Int32 level;
+    protected StringWriter writer = new StringWriter();
+    protected Int32 level = 1;
 
-    public Formatter(Int32 level = 1)
+    public static String Format(Dix dix)
     {
-        this.level = level;
+        var formatter = new D();
+
+        formatter.Visit(dix);
+
+        return formatter.writer.ToString();
     }
 
+    public override void Visit(Dix dix)
+    {
+        ++level;
+        base.Visit(dix);
+        --level;
+    }
+}
+
+public class SimpleFormatter : AbstractFormatter<SimpleFormatter>
+{
     Char GetOperationCharacter(DixOperation o) => o switch
     {
         DixOperation.None => ' ',
@@ -68,23 +83,50 @@ public class Formatter : DixVisitor
             writer.WriteLine();
         }
 
-        try
-        {
-            ++level;
-            base.Visit(dix);
-        }
-        finally
-        {
-            --level;
-        }
+        base.Visit(dix);
     }
+}
 
-    public static String Format(Dix dix)
+public class CSharpFormatter : AbstractFormatter<CSharpFormatter>
+{
+    Char GetOperatorCharacter(DixOperation o) => o switch
     {
-        var formatter = new Formatter();
+        DixOperation.None => ' ',
+        DixOperation.Update => '!',
+        DixOperation.Insert => '+',
+        DixOperation.Remove => '-',
+        _ => throw new Exception()
+    };
 
-        formatter.Visit(dix);
+    Char[] problematics = "\"\\".ToArray();
 
-        return formatter.writer.ToString();
+    String CreateStringLiteral(String? name)
+        => name is null ? "null" : name.IndexOfAny(problematics) >= 0 ? $"@\"{name.Replace("\"", "\"\"")}\"" : $"\"{name}\"";
+
+    Boolean pendingNewline = false;
+
+    public override void Visit(Dix dix)
+    {
+        if (pendingNewline)
+        {
+            writer.WriteLine(",");
+            pendingNewline = false;
+        }
+
+        writer.Write(new String(' ', level * 4 - 1));
+        writer.Write(GetOperatorCharacter(dix.Operation));
+
+        writer.Write($"D({CreateStringLiteral(dix.Name)}");
+
+        if (dix.Unstructured is not null)
+        {
+            writer.Write($", {CreateStringLiteral(dix.Unstructured)}");
+        }
+
+        pendingNewline = true;
+
+        base.Visit(dix);
+
+        writer.Write(")");
     }
 }

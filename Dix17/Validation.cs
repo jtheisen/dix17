@@ -98,5 +98,18 @@ public class DixValidator
     }
 
     public static void AssertEqual(Dix expected, Dix actual, DixValidatorFlags flags = default)
-        => new DixValidator { flags = flags }.Visit(actual, expected);
+    {
+        try
+        {
+            new DixValidator { flags = flags }.Visit(actual, expected);
+        }
+        catch (DixValidationException)
+        {
+            Console.WriteLine($"Actual result:\n\n{actual.Format()}");
+
+            Console.WriteLine($"Actual result in CSharp:\n\n{actual.FormatCSharp()}");
+
+            throw;
+        }
+    }
 }

@@ -1,4 +1,6 @@
-﻿namespace Dix17;
+﻿using System.IO;
+
+namespace Dix17;
 
 public abstract class AbstractSource<Node> : ISource
     where Node : class
@@ -58,6 +60,11 @@ public class MockupFileSystemSource : AbstractSource<MockupFileSystemSource.Node
 {
     DirectoryNode root = new DirectoryNode();
 
+    public MockupFileSystemSource(Action<DirectoryNode>? content = null)
+    {
+        content?.Invoke(root);
+    }
+
     protected override Node? GetChild(Node parent, String name) => parent switch
     {
         DirectoryNode d => d.Children.GetValueOrDefault(name),
@@ -85,6 +92,20 @@ public class MockupFileSystemSource : AbstractSource<MockupFileSystemSource.Node
         public override String EntryTypeMetadataValue => Metadata.FileSystemEntryDirectory;
 
         public Dictionary<String, Node> Children { get;  } = new Dictionary<String, Node>();
+
+        public DirectoryNode AddFile(String name, String content)
+        {
+            Children[name] = new FileNode { Content = content };
+            return this;
+        }
+
+        public DirectoryNode AddDirectory(String name, Action<DirectoryNode> content)
+        {
+            var directory = new DirectoryNode();
+            content(directory);
+            Children[name] = directory;
+            return this;
+        }
     }
 
     public class FileNode : Node

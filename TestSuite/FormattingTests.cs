@@ -67,4 +67,46 @@ public class FormattingTests
             ).Format().Frame()
         );
     }
+
+    [TestMethod]
+    public void TestCSharpFormatting()
+    {
+        Assert.AreEqual(
+            """
+    D("root",
+        D("some-string", "foo"),
+        D("some-list",
+            D("item1"),
+            D("item2")))
+""".Frame(),
+            D("root",
+                D("some-string", "foo"),
+                D("some-list",
+                    D("item1"),
+                    D("item2")
+                )
+            ).FormatCSharp().Frame()
+        );
+    }
+
+    [TestMethod]
+    public void TestCSharpEscapingFormatting()
+    {
+        Assert.AreEqual(
+            """
+    D("root",
+        D("some-string", @"fo\o"),
+        D(@"some""list",
+            D("item1"),
+            D("item2")))
+""".Frame(),
+            D("root",
+                D("some-string", @"fo\o"),
+                D(@"some""list",
+                    D("item1"),
+                    D("item2")
+                )
+            ).FormatCSharp().Frame()
+        );
+    }
 }

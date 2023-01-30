@@ -131,7 +131,10 @@ public static class Extensions
         => dix with { Content = new CDixContent(dix.Unstructured, dix.Children.Concat(new[] { metadata })) };
 
     public static String Format(this Dix dix)
-        => Formatter.Format(dix);
+        => SimpleFormatter.Format(dix);
+
+    public static String FormatCSharp(this Dix dix)
+        => CSharpFormatter.Format(dix);
 }
 
 
