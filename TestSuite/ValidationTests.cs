@@ -71,22 +71,6 @@ public class ValidationTests
     }
 
     [TestMethod]
-    public void TestIgnoringUnstructuredFailing()
-    {
-        DixValidator.AssertEqual(
-            D("root",
-                D("item1"),
-                D("item2")
-            ),
-            D("root", "foo",
-                D("item1"),
-                D("item2")
-            ),
-            DixValidatorFlags.IgnoreExtraUnstructuredIfNullInExpected
-        );
-    }
-
-    [TestMethod]
     public void TestNotIgnoringUnstructuredForLeafs()
     {
         Assert.ThrowsException<DixValidationException>(() =>

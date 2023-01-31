@@ -40,7 +40,7 @@ public class ReflectorTests
     public void TestSourceSimple()
     {
         Assert.AreEqual(@"
-  query = TestSuite.ReflectorTests+TestType
+  query
     reflection:clr-type = TestSuite.ReflectorTests+TestType
     String
     Boolean

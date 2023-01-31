@@ -39,6 +39,7 @@ public static class Utilities
     [DebuggerHidden]
     public static IEnumerable<T> Singleton<T>(this T value) => new[] { value };
 
+    [DebuggerHidden]
     public static T Return<T>(this object _, T value) => value;
 
     public static T BreakIf<T>(this T value, bool condition)
@@ -78,4 +79,7 @@ public static class Utilities
         }
     }
 
+    [DebuggerHidden]
+    public static IEnumerable<Dix>? ConcatNullables(this IEnumerable<Dix>? source, IEnumerable<Dix>? more)
+        => source is null ? more : more is null ? source : source.Concat(more);
 }

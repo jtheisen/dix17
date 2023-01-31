@@ -99,7 +99,7 @@ public class ReflectionSource : ISource
         DixOperation.None => dix.IsLeaf()
             ? GetDixTeaser(dix.Name, target)
             : D(dix.Name,
-                from d in dix.GetStructure()
+                from d in dix.Structure
                 select Process(d, target, d.Name)
             ),
         DixOperation.Update => Update(dix, parentTarget ?? throw new Exception("root can't be updated")),
@@ -119,17 +119,6 @@ public class ReflectionSource : ISource
         return Process(dix, parentTarget, value);
     }
 
-    Dix GetPropertyDix(String name, Object target)
-    {
-        var type = target.GetType();
-
-        var property = type.GetProperty(name);
-
-        if (property is null) throw new Exception($"No property {name} on {type.FullName}");
-
-        return GetDixTeaser(property.Name, property.GetValue(target));
-    }
-
     Dix GetDixTeaser(String? name, Object? target)
     {
         if (target is null)
@@ -140,10 +129,12 @@ public class ReflectionSource : ISource
         {
             var type = target.GetType();
 
-            var unstructured = target.ToString() ?? "";
+            var unstructured = target.ToString();
+
+            var structure = (from p in type.GetProperties() select D(p.Name)).ToArray();
 
             return D(name,
-                unstructured,
+                structure.Length == 0 ? unstructured : null,
                 from p in type.GetProperties() select D(p.Name),
                 D(Metadata.ReflectedClrType, type.FullName!).Singleton()
             );

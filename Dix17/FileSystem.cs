@@ -2,8 +2,13 @@
 
 namespace Dix17;
 
+public interface INode
+{
+    IEnumerable<Dix>? GetMetadata();
+}
+
 public abstract class AbstractSource<Node> : ISource
-    where Node : class
+    where Node : class, INode
 {
     public Dix Query(Dix dix)
     {
@@ -14,16 +19,22 @@ public abstract class AbstractSource<Node> : ISource
     {
         DixOperation.None => dix.IsLeaf()
             ? GetTeaser(dix.Name ?? throw new Exception($"No name"), target ?? throw new Exception($"No node for {dix.Name}"))
-            : D(dix.Name,
-                from d in dix.GetStructure()
-                let c = GetChild(target ?? throw new Exception($"No node for {dix.Name}"), d.Name ?? throw new Exception($"No name"))
-                select Process(d, target, c)
-            ),
+            : D(dix.Name, GetContent(dix, target ?? throw new Exception($"No node for {dix.Name}"))),
         DixOperation.Update => Update(dix, parentTarget, target ?? throw new Exception($"No node to update for {dix.Name}")),
         DixOperation.Insert => InsertInternal(dix, parentTarget, target),
         DixOperation.Remove => RemoveInternal(dix, parentTarget, target),
         _ => throw new Exception($"Unsupported operation {dix.Operation}")
     };
+
+    DixContent GetContent(Dix dix, Node target)
+    {
+        var content =
+            from d in dix.Structure
+            let c = GetChild(target ?? throw new Exception($"No node for {dix.Name}"), d.Name ?? throw new Exception($"No name"))
+            select Process(d, target, c);
+
+        return Dc(content.ToArray());
+    }
 
     protected abstract Node GetRoot();
 
@@ -155,13 +166,18 @@ public class MockupFileSystemSource : AbstractSource<MockupFileSystemSource.Node
         }
     }
 
-    public abstract class Node
+    public abstract class Node : INode
     {
         public abstract String EntryTypeMetadataValue { get; }
 
-        public virtual Node this[String name] => throw new Exception($"Not a directory");
+        public virtual Node? this[String name] => throw new Exception($"Not a directory");
 
         public virtual String Content { get => throw new Exception($"Not a file"); set { } }
+
+        public IEnumerable<Dix>? GetMetadata()
+        {
+            yield return D(Metadata.FileSystemEntry, EntryTypeMetadataValue);
+        }
     }
 
     public class DirectoryNode : Node
@@ -170,7 +186,7 @@ public class MockupFileSystemSource : AbstractSource<MockupFileSystemSource.Node
 
         public Dictionary<String, Node> Children { get;  } = new Dictionary<String, Node>();
 
-        public override Node this[String name] => Children.GetValueOrDefault(name);
+        public override Node? this[String name] => Children.GetValueOrDefault(name);
 
         public DirectoryNode AddFile(String name, String content)
         {

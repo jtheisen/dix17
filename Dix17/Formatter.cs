@@ -41,7 +41,7 @@ public abstract class AbstractFormatter<D> : DixVisitor
 
 public class SimpleFormatter : AbstractFormatter<SimpleFormatter>
 {
-    Char GetOperationCharacter(DixOperation o) => o switch
+    public static Char GetOperationCharacter(DixOperation o) => o switch
     {
         DixOperation.None => ' ',
         DixOperation.Update => '=',
