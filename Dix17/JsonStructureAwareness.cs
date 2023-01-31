@@ -30,19 +30,19 @@ public class JsonStructureAwareness : IStructureAwareness
 
     static JToken MakeToken(Dix dix)
     {
-        var jsonType = dix.GetMetadata(Metadata.JsonType);
+        var jsonType = dix.GetMetadata(MetadataConstants.JsonType);
 
         if (jsonType is null) throw new Exception();
 
         switch (jsonType?.Unstructured)
         {
-            case Metadata.JsonTypeBoolean: return Boolean.Parse(dix.Unstructured!);
-            case Metadata.JsonTypeString: return dix.Unstructured!;
-            case Metadata.JsonTypeNumber: return Int64.TryParse(dix.Unstructured, out var r) ? (JToken)r : (JToken)Double.Parse(dix.Unstructured!);
-            case Metadata.JsonTypeNull: return JValue.CreateNull();
-            case Metadata.JsonTypeArray:
+            case MetadataConstants.JsonTypeBoolean: return Boolean.Parse(dix.Unstructured!);
+            case MetadataConstants.JsonTypeString: return dix.Unstructured!;
+            case MetadataConstants.JsonTypeNumber: return Int64.TryParse(dix.Unstructured, out var r) ? (JToken)r : (JToken)Double.Parse(dix.Unstructured!);
+            case MetadataConstants.JsonTypeNull: return JValue.CreateNull();
+            case MetadataConstants.JsonTypeArray:
                 return new JArray(from i in dix.GetStructure() select MakeToken(i));
-            case Metadata.JsonTypeObject:
+            case MetadataConstants.JsonTypeObject:
                 return new JObject(
                     from p in dix.GetStructure()
                     select new JProperty(p.Name!, MakeToken(p))
@@ -56,26 +56,26 @@ public class JsonStructureAwareness : IStructureAwareness
     {
         if (token is JObject o)
         {
-            return D(name, from p in o.Properties() select MakeDix(p.Name, p.Value), D(Metadata.JsonType, Metadata.JsonTypeObject));
+            return D(name, from p in o.Properties() select MakeDix(p.Name, p.Value), D(MetadataConstants.JsonType, MetadataConstants.JsonTypeObject));
         }
         else if (token is JArray a)
         {
-            return D(name, from i in a select MakeDix(null, i), D(Metadata.JsonType, Metadata.JsonTypeArray));
+            return D(name, from i in a select MakeDix(null, i), D(MetadataConstants.JsonType, MetadataConstants.JsonTypeArray));
         }
         else
         {
             switch (token.Type)
             {
                 case JTokenType.Integer:
-                    return D(name, token.Value<Int64>().ToString(), D(Metadata.JsonType, Metadata.JsonTypeNumber));
+                    return D(name, token.Value<Int64>().ToString(), D(MetadataConstants.JsonType, MetadataConstants.JsonTypeNumber));
                 case JTokenType.Float:
-                    return D(name, token.Value<Double>().ToString(), D(Metadata.JsonType, Metadata.JsonTypeNumber));
+                    return D(name, token.Value<Double>().ToString(), D(MetadataConstants.JsonType, MetadataConstants.JsonTypeNumber));
                 case JTokenType.String:
-                    return D(name, token.Value<String>()!, D(Metadata.JsonType, Metadata.JsonTypeString));
+                    return D(name, token.Value<String>()!, D(MetadataConstants.JsonType, MetadataConstants.JsonTypeString));
                 case JTokenType.Boolean:
-                    return D(name, token.Value<Boolean>().ToString(), D(Metadata.JsonType, Metadata.JsonTypeBoolean));
+                    return D(name, token.Value<Boolean>().ToString(), D(MetadataConstants.JsonType, MetadataConstants.JsonTypeBoolean));
                 case JTokenType.Null:
-                    return D(name, "null", D(Metadata.JsonType, Metadata.JsonTypeNull));
+                    return D(name, "null", D(MetadataConstants.JsonType, MetadataConstants.JsonTypeNull));
                 default:
                     throw new Exception($"Invalid token type {token.Type}");
             }

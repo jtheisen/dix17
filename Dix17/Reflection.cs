@@ -96,7 +96,7 @@ public class ReflectionSource : ISource
 
     Dix Process(Dix dix, Object? parentTarget, Object target) => dix.Operation switch
     {
-        DixOperation.None => dix.IsLeaf()
+        DixOperation.Select => dix.IsLeaf()
             ? GetDixTeaser(dix.Name, target)
             : D(dix.Name,
                 from d in dix.Structure
@@ -123,7 +123,7 @@ public class ReflectionSource : ISource
     {
         if (target is null)
         {
-            return D(name, D(Metadata.ReflectedType, Metadata.ReflectedTypeNull));
+            return D(name, D(MetadataConstants.ReflectedType, MetadataConstants.ReflectedTypeNull));
         }
         else
         {
@@ -136,14 +136,14 @@ public class ReflectionSource : ISource
             return D(name,
                 structure.Length == 0 ? unstructured : null,
                 from p in type.GetProperties() select D(p.Name),
-                D(Metadata.ReflectedClrType, type.FullName!).Singleton()
+                D(MetadataConstants.ReflectedClrType, type.FullName!).Singleton()
             );
         }
     }
 
     Object CreateObject(Dix dix, Type type)
     {
-        var clrType = dix.GetMetadataValue(Metadata.ReflectedClrType);
+        var clrType = dix.GetMetadataValue(MetadataConstants.ReflectedClrType);
 
         return typeAwareness.CreateObject(type, dix.Unstructured, clrType);
     }

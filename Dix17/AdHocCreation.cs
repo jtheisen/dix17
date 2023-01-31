@@ -2,10 +2,15 @@
 
 public static class AdHocCreation
 {
-    public static readonly Dix Dq = D("query");
+    public static readonly String DefaultQueryName = "query";
+
+    public static Dix Dq() => D(DefaultQueryName);
+
+    public static Dix Dq(DixContent content) => D(DefaultQueryName, content);
+
 
     public static Dix D(String? name, IDixContext? context, String? unstructured, IEnumerable<Dix>? children)
-        => new Dix { Operation = DixOperation.None, Name = name, Content = new CDixContent(unstructured, children.WhereStructure().ToArray(), children.WhereMetadata().ToArray(), context) };
+        => new Dix { Operation = DixOperation.Select, Name = name, Content = new CDixContent(unstructured, children.WhereStructure().ToArray(), children.WhereMetadata().ToArray(), context) };
 
     [DebuggerHidden]
     public static Dix D(String? name, String unstructured, params Dix[] children)
@@ -39,7 +44,22 @@ public static class AdHocCreation
     public static DixContent Dc(IDixContext? context, String? unstructured, IEnumerable<Dix>? children)
         => new DixContent { Content = new CDixContent(unstructured, children.WhereStructure(), children.WhereMetadata(), context) };
 
+    public static DixContent Dc(params String[] children)
+        => Dc((IDixContext?)null, null, children.Select(n => D(n)));
+
     public static DixContent Dc(params Dix[] children)
         => Dc((IDixContext?)null, null, children.OfType<Dix>());
 
+
+    public static DixMetadata Dm(params Object[] children)
+        => new DixMetadata(children.Select(c => GetDixMetadata(c)).SelectMany(c => c));
+
+    static IEnumerable<Dix>? GetDixMetadata(Object child) => child switch
+    {
+        null => null,
+        String s => D(s).Singleton(),
+        DixMetadata dm => dm.Metadata,
+        Dix d => d.Singleton(),
+        _ => throw new Exception($"Unsupported content type {child.GetType()}")
+    };
 }

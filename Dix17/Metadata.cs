@@ -1,8 +1,9 @@
-﻿using static Dix17.AdHocCreation;
+﻿using System.Diagnostics.CodeAnalysis;
+using static Dix17.AdHocCreation;
 
 namespace Dix17;
 
-public static class Metadata
+public static class MetadataConstants
 {
     public const String JsonType = "x:json-type";
 
@@ -30,14 +31,14 @@ public static class Metadata
 
 public static class MetadataForSources
 {
-    public const String CanUpdate = "s:can-update";
-    public const String CanInsert = "s:can-insert";
-    public const String CanRemove = "s:can-remove";
+    public const String MdnCanUpdate = "s:can-update";
+    public const String MdnCanInsert = "s:can-insert";
+    public const String MdnCanRemove = "s:can-remove";
 
-    public const String CanInsertOrRemoveEmpty = "empty";
-    public const String CanModifyAny = "any";
+    public const String MdvCanInsertOrRemoveEmpty = "empty";
+    public const String MdvCanModifyAny = "any";
 
-    public const String OneOperationOnly = "s:one-operation-only";
+    public const String MdnOneOperationOnly = "s:one-operation-only";
 
     
 
@@ -73,10 +74,7 @@ public record MetadataRule(Dix Match, Dix Template)
         : this(D("match", match), D("template", template))
     {
     }
-}
 
-public static class MetadataRules
-{
     public static Dix GetDix(MetadataRule rule) => D("rule",
         D("match", rule.Match),
         D("template", rule.Template)
@@ -89,6 +87,25 @@ public static class MetadataRules
             rule["template"] ?? throw new Exception($"Expected rule to have a template")
         );
     }
+
+    public static Dix GetDix(IEnumerable<MetadataRule> rules)
+    {
+        return D("md:rules", from r in rules select GetDix(r));
+    }
+
+    public static Boolean TryGetRuleSet(Dix dix, [NotNullWhen(true)] out MetadataRuleSet? ruleset)
+    {
+        ruleset = null;
+
+        if (dix.Name == "md:rules")
+        {
+            ruleset = new MetadataRuleSet(dix.Structure.Select(GetRule).ToArray());
+
+            return true;
+        }
+
+        return false;
+    }
 }
 
 public interface IMetadataProvider
@@ -96,11 +113,13 @@ public interface IMetadataProvider
     void AugmentMetadata(Dictionary<String, Dix?> metadata, String prefix);
 }
 
-public class RuleMetadataProvider : IMetadataProvider, IDixContext
+public class MetadataRuleSet : IMetadataProvider, IDixContext
 {
     private readonly MetadataRule[] rules;
 
-    public RuleMetadataProvider(MetadataRule[] rules)
+    public MetadataRule[] Rules => rules;
+
+    public MetadataRuleSet(MetadataRule[] rules)
     {
         this.rules = rules;
     }
@@ -129,41 +148,25 @@ public class RuleMetadataProvider : IMetadataProvider, IDixContext
     }
 }
 
-public class MetadataProviderBuilder : IMetadataProvider
+public class MetadataRulesetBuilder
 {
-    List<(Dix condition, Dix implication)> simpleImplications = new List<(Dix condition, Dix implication)>();
+    List<MetadataRule> rules = new List<MetadataRule>();
 
-    public MetadataProviderBuilder AddSimpleImplication(Dix condition, Dix implication)
-        => Modify(() => simpleImplications.Add((condition, implication)));
+    public MetadataRulesetBuilder AddRule(MetadataRule rule)
+        => Modify(() => rules.Add(rule));
 
-    public void AugmentMetadata(Dictionary<String, Dix?> metadata, String prefix)
+    public MetadataRulesetBuilder AddRule(DixContent match, DixContent template)
+        => Modify(() => rules.Add(new MetadataRule(match, template)));
+
+    public MetadataRuleSet Build()
     {
-        var tryAgain = true;
-
-        while (tryAgain)
-        {
-            tryAgain = false;
-
-            foreach (var (condition, implication) in simpleImplications)
-            {
-                if (metadata.ContainsKey(implication.Name!)) continue;
-
-                if (!metadata.TryGetValue(condition.Name!, out var value)) continue;
-
-                if (value is null || value.Value.Unstructured != condition.Unstructured) continue;
-
-                metadata[implication.Name!] = implication;
-
-                tryAgain = true;
-            }
-        }
+        return new MetadataRuleSet(rules.ToArray());
     }
 
-    public IMetadataProvider Build() => this;
-
-    MetadataProviderBuilder Modify(Action action)
+    MetadataRulesetBuilder Modify(Action action)
     {
         action();
         return this;
     }
+
 }

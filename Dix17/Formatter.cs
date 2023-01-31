@@ -43,10 +43,11 @@ public class SimpleFormatter : AbstractFormatter<SimpleFormatter>
 {
     public static Char GetOperationCharacter(DixOperation o) => o switch
     {
-        DixOperation.None => ' ',
+        DixOperation.Select => ' ',
         DixOperation.Update => '=',
         DixOperation.Insert => '+',
         DixOperation.Remove => '-',
+        DixOperation.Error => '!',
         _ => '?'
     };
 
@@ -91,10 +92,11 @@ public class CSharpFormatter : AbstractFormatter<CSharpFormatter>
 {
     Char GetOperatorCharacter(DixOperation o) => o switch
     {
-        DixOperation.None => ' ',
-        DixOperation.Update => '!',
+        DixOperation.Select => ' ',
+        DixOperation.Update => '~',
         DixOperation.Insert => '+',
         DixOperation.Remove => '-',
+        DixOperation.Error => '!',
         _ => throw new Exception()
     };
 

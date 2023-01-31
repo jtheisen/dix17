@@ -4,7 +4,7 @@
 public class MetadataRuleTests
 {
     MetadataRule[] rules;
-    RuleMetadataProvider provider;
+    MetadataRuleSet provider;
 
     public MetadataRuleTests()
     {
@@ -14,7 +14,7 @@ public class MetadataRuleTests
             new MetadataRule(Dc(D("x:type", "foo")), Dc(D("x:type-foo")))
         };
 
-        provider = new RuleMetadataProvider(rules);
+        provider = new MetadataRuleSet(rules);
     }
 
     [TestMethod]

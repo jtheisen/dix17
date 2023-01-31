@@ -46,10 +46,12 @@ public class FileSystemTests
         );
     }
 
+#pragma warning disable CS8602 // Dereference of a possibly null reference
+
     [TestMethod]
     public void TestInsertion()
     {
-        source.Query(D("query", D("docs", +D("readme.md", "testcontent!", D(Metadata.FileSystemEntry, Metadata.FileSystemEntryFile)))));
+        source.Query(D("query", D("docs", +D("readme.md", "testcontent!", D(MetadataConstants.FileSystemEntry, MetadataConstants.FileSystemEntryFile)))));
 
         Assert.AreEqual("testcontent!", source.Root["docs"]["readme.md"].Content);
     }

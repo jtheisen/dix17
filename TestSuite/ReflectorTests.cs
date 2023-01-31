@@ -71,7 +71,7 @@ public class ReflectorTests
     [TestMethod]
     public void TestStringModification()
     {
-        source.Query(D("query", !D("String", "Modified!")));
+        source.Query(D("query", ~D("String", "Modified!")));
 
         Assert.AreEqual("Modified!", testObject.String);
     }
@@ -79,7 +79,7 @@ public class ReflectorTests
     [TestMethod]
     public void TestBooleanModification()
     {
-        source.Query(D("query", !D("Boolean", "false")));
+        source.Query(D("query", ~D("Boolean", "false")));
 
         Assert.AreEqual(false, testObject.Boolean);
     }

@@ -36,7 +36,7 @@ public class FormattingTests
       item2
 ".Frame(),
             D("root",
-                !D("some-string", "foo"),
+                ~D("some-string", "foo"),
                 D("some-list",
                     +D("item1"),
                     D("item2")

@@ -7,10 +7,11 @@ namespace Dix17;
 public enum DixOperation
 {
     Invalid,
-    None,
+    Select,
     Update,
     Insert,
-    Remove
+    Remove,
+    Error
 }
 
 [DebuggerDisplay("{ToString()}")]
@@ -32,22 +33,25 @@ public struct Dix
 
     public IDixContext? Context => Content?.Context;
 
-    public Dix? this[String name] => Structure.FirstOrDefault(d => d.Name == name).Nullify();
+    public Dix? this[String name] => Structure?.FirstOrDefault(d => d.Name == name).Nullify();
 
-    public IEnumerable<Dix> Structure => Content?.Structure ?? Enumerable.Empty<Dix>();
+    public IEnumerable<Dix>? Structure => Content?.Structure;
     public IEnumerable<Dix> Metadata => Content?.Metadata ?? Enumerable.Empty<Dix>();
 
     public Dix? GetMetadata(String name) => Content?.GetMetadata(name);
 
     public Dix WithName(String? name) => this with { Name = name };
-    public Dix WithoutOperation() => this with { Operation = DixOperation.None };
+    public Dix WithoutOperation() => this with { Operation = DixOperation.Select };
+    public Dix WithError() => this with { Operation = DixOperation.Error };
 
     public Dix? Nullify() => IsNaD ? null : this;
 
-    public static Dix operator ~(Dix dix) => dix with { Operation = DixOperation.None };
-    public static Dix operator !(Dix dix) => dix with { Operation = DixOperation.Update };
+    public static Dix operator ~(Dix dix) => dix with { Operation = DixOperation.Update };
+    //public static Dix operator !(Dix dix) => dix with { Operation = DixOperation.Error };
     public static Dix operator +(Dix dix) => dix with { Operation = DixOperation.Insert };
     public static Dix operator -(Dix dix) => dix with { Operation = DixOperation.Remove };
+
+    public String Formatted => SimpleFormatter.Format(this);
 
     public override String ToString()
     {
@@ -85,6 +89,19 @@ public struct DixContent
 
     public IEnumerable<Dix> Structure => Content?.Structure ?? Enumerable.Empty<Dix>();
     public IEnumerable<Dix> Metadata => Content?.Metadata ?? Enumerable.Empty<Dix>();
+}
+
+public struct DixMetadata
+{
+    public IEnumerable<Dix>? Metadata { get; set; }
+
+    public DixMetadata(IEnumerable<Dix>? metadata)
+    {
+        Metadata = metadata;
+    }
+
+    public static DixMetadata operator +(DixMetadata lhs, DixMetadata rhs)
+        => new DixMetadata(lhs.Metadata.ConcatNullables(rhs.Metadata));
 }
 
 public interface IDixContext
@@ -179,13 +196,13 @@ public static partial class Extensions
         => name.Contains(':');
 
     public static IEnumerable<Dix> GetStructure(this Dix dix)
-        => dix.Structure;
+        => dix.Structure ?? Enumerable.Empty<Dix>();
 
     public static IEnumerable<Dix> GetMetadata(this Dix dix)
         => dix.Metadata;
 
     public static Boolean IsLeaf(this Dix dix)
-        => !dix.Structure.Any();
+        => !dix.GetStructure().Any();
 
     public static Dix GetStructure(this Dix dix, String name)
         => dix.GetStructure().SingleOrDefault(d => d.Name == name);
@@ -203,10 +220,13 @@ public static partial class Extensions
         => dix.GetMetadata(name) is Dix d && d.Unstructured == value;
 
     public static Dix WithStructure(this Dix dix, IEnumerable<Dix> structure)
-        => dix with { Content = new CDixContent(dix.Unstructured, dix.Structure.Concat(structure), dix.Metadata, dix.Context) };
+        => dix with { Content = new CDixContent(dix.Unstructured, structure, dix.Metadata, dix.Context) };
+
+    public static Dix AddStructure(this Dix dix, IEnumerable<Dix> structure)
+        => dix with { Content = new CDixContent(dix.Unstructured, dix.Structure?.ConcatNullables(structure), dix.Metadata, dix.Context) };
 
     public static Dix AddStructure(this Dix dix, Dix structure)
-        => dix.WithStructure(structure.Singleton());
+        => dix.AddStructure(structure.Singleton());
 
     public static Dix WithContent(this Dix dix, Dix content)
         => dix with { Content = content.Content };
@@ -214,11 +234,26 @@ public static partial class Extensions
     public static Dix WithContext(this Dix dix, IDixContext context)
         => dix with { Content = new CDixContent(dix.Unstructured, dix.Structure, dix.Metadata, context) };
 
+    public static Dix WithMetadata(this Dix dix, DixMetadata metadata = default)
+        => dix with { Content = new CDixContent(dix.Unstructured, dix.Structure, metadata.Metadata, dix.Context) };
+
+    public static Dix AddMetadata(this Dix dix, DixContent content)
+        => dix with { Content = new CDixContent(dix.Unstructured, dix.Structure, dix.Metadata.ConcatNullables(content.Metadata), dix.Context) };
+
+    public static Dix AddMetadata(this Dix dix, DixMetadata metadata)
+        => dix with { Content = new CDixContent(dix.Unstructured, dix.Structure, dix.Metadata.ConcatNullables(metadata.Metadata), dix.Context) };
+
     public static Dix AddMetadata(this Dix dix, IEnumerable<Dix>? metadata)
         => dix with { Content = new CDixContent(dix.Unstructured, dix.Structure, dix.Metadata.ConcatNullables(metadata), dix.Context) };
 
     public static Dix AddMetadata(this Dix dix, Dix metadata)
         => dix.AddMetadata(metadata.Singleton());
+
+    public static Dix Map(this Dix dix, Func<Dix, Dix> mapper)
+        => dix.Structure is IEnumerable<Dix> structure ? dix.WithStructure(structure.Select(mapper)) : dix;
+
+    public static Dix MapRecursively(this Dix dix, Func<Dix, Dix> mapper)
+        => dix.Structure is IEnumerable<Dix> structure ? dix.WithStructure(structure.Select(mapper).Select(d => d.MapRecursively(mapper))) : dix;
 
     public static String Format(this Dix dix)
         => SimpleFormatter.Format(dix);
@@ -226,6 +261,8 @@ public static partial class Extensions
     public static String FormatCSharp(this Dix dix)
         => CSharpFormatter.Format(dix);
 
+    public static Dix WithError(this Dix dix, String message)
+        => dix.AddMetadata(D("s:error", message)) with { Operation = DixOperation.Error };
 
     public static IEnumerable<Dix> WhereMetadata(this IEnumerable<Dix>? source)
         => source?.Where(d => d.Name?.IsMetadataName() ?? false) ?? Enumerable.Empty<Dix>();
@@ -233,6 +270,9 @@ public static partial class Extensions
     public static IEnumerable<Dix> WhereStructure(this IEnumerable<Dix>? source)
         => source?.Where(d => !d.Name?.IsMetadataName() ?? true) ?? Enumerable.Empty<Dix>();
 
+
+    public static Dix RecursivelyRemoveMetadata(this Dix dix)
+        => dix.WithMetadata().Map(RecursivelyRemoveMetadata);
 }
 
 

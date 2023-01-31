@@ -24,13 +24,10 @@ public class RerootingTests
 
         DixValidator.AssertEqual(
             D("query",
-                D("bin",
-                    D("fs:entry", "directory")),
-                D("core.cs",
-                    D("fs:entry", "file")),
-                D("extensions.cs",
-                    D("fs:entry", "file"))),
-            rerooted.Query(D("query"))
+                D("bin"),
+                D("core.cs"),
+                D("extensions.cs")),
+            rerooted.Query(D("query")).RecursivelyRemoveMetadata()
         );
     }
 
@@ -41,9 +38,8 @@ public class RerootingTests
 
         DixValidator.AssertEqual(
             D("query",
-                D(".empty",
-                    D("fs:entry", "file"))),
-            rerooted.Query(D("query"))
+                D(".empty")),
+            rerooted.Query(D("query")).RecursivelyRemoveMetadata()
         );
     }
 
@@ -55,7 +51,7 @@ public class RerootingTests
         DixValidator.AssertEqual(
             D("query",
                 D(".empty", "")),
-            rerooted.Query(D("query", D(".empty")))
+            rerooted.Query(D("query", D(".empty"))).RecursivelyRemoveMetadata()
         );
     }
 
