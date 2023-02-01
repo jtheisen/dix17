@@ -195,6 +195,9 @@ public static partial class Extensions
     public static Boolean IsMetadataName(this String name)
         => name.Contains(':');
 
+    public static Boolean HasMetadataPrefix(this String? name, String prefix)
+        => name is not null && name.Length > prefix.Length + 1 && name.StartsWith(prefix) && name[prefix.Length + 1] == ':';
+
     public static IEnumerable<Dix> GetStructure(this Dix dix)
         => dix.Structure ?? Enumerable.Empty<Dix>();
 
@@ -237,6 +240,9 @@ public static partial class Extensions
     public static Dix WithMetadata(this Dix dix, DixMetadata metadata = default)
         => dix with { Content = new CDixContent(dix.Unstructured, dix.Structure, metadata.Metadata, dix.Context) };
 
+    public static Dix WithMetadata(this Dix dix, IEnumerable<Dix>? metadata)
+        => dix with { Content = new CDixContent(dix.Unstructured, dix.Structure, metadata, dix.Context) };
+
     public static Dix AddMetadata(this Dix dix, DixContent content)
         => dix with { Content = new CDixContent(dix.Unstructured, dix.Structure, dix.Metadata.ConcatNullables(content.Metadata), dix.Context) };
 
@@ -248,6 +254,9 @@ public static partial class Extensions
 
     public static Dix AddMetadata(this Dix dix, Dix metadata)
         => dix.AddMetadata(metadata.Singleton());
+
+    public static Dix RemoveMetadataExcept(this Dix dix, String prefix)
+        => dix.WithMetadata(dix.Metadata.Where(m => m.Name.HasMetadataPrefix(prefix)));
 
     public static Dix Map(this Dix dix, Func<Dix, Dix> mapper)
         => dix.Structure is IEnumerable<Dix> structure ? dix.WithStructure(structure.Select(mapper)) : dix;
@@ -273,6 +282,10 @@ public static partial class Extensions
 
     public static Dix RecursivelyRemoveMetadata(this Dix dix)
         => dix.WithMetadata().Map(RecursivelyRemoveMetadata);
+
+    public static Dix RecursivelyRemoveMetadataExcept(this Dix dix, String prefix)
+        => dix.RemoveMetadataExcept(prefix).Map(d => d.RecursivelyRemoveMetadataExcept(prefix));
+
 }
 
 

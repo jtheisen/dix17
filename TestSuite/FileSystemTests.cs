@@ -28,7 +28,7 @@ public class FileSystemTests
                     D("fs:entry", "directory")),
                 D("src",
                     D("fs:entry", "directory"))),
-            source.Query(D("query"))
+            source.Query(D("query")).RecursivelyRemoveMetadataExcept("fs")
         );
     }
 
@@ -42,7 +42,7 @@ public class FileSystemTests
                         D("fs:entry", "file")),
                     D("extensions.cs",
                         D("fs:entry", "file")))),
-            source.Query(D("query", D("src")))
+            source.Query(D("query", D("src"))).RecursivelyRemoveMetadataExcept("fs")
         );
     }
 
