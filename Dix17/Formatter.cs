@@ -1,21 +1,5 @@
 ﻿namespace Dix17;
 
-public abstract class DixVisitor
-{
-    public virtual void Visit(Dix dix)
-    {
-        foreach (var child in dix.GetMetadata())
-        {
-            Visit(child);
-        }
-
-        foreach (var child in dix.GetStructure())
-        {
-            Visit(child);
-        }
-    }
-}
-
 public abstract class AbstractFormatter<D> : DixVisitor
     where D : AbstractFormatter<D>, new()
 {
@@ -31,11 +15,12 @@ public abstract class AbstractFormatter<D> : DixVisitor
         return formatter.writer.ToString();
     }
 
-    public override void Visit(Dix dix)
+    public override Dix Visit(Dix dix)
     {
         ++level;
         base.Visit(dix);
         --level;
+        return dix;
     }
 }
 
@@ -51,7 +36,7 @@ public class SimpleFormatter : AbstractFormatter<SimpleFormatter>
         _ => '?'
     };
 
-    public override void Visit(Dix dix)
+    public override Dix Visit(Dix dix)
     {
         writer.Write(new String(' ', level * 2 - 2));
         writer.Write(GetOperationCharacter(dix.Operation));
@@ -84,7 +69,7 @@ public class SimpleFormatter : AbstractFormatter<SimpleFormatter>
             writer.WriteLine();
         }
 
-        base.Visit(dix);
+        return base.Visit(dix);
     }
 }
 
@@ -112,7 +97,7 @@ public class CSharpFormatter : AbstractFormatter<CSharpFormatter>
         level = 3;
     }
 
-    public override void Visit(Dix dix)
+    public override Dix Visit(Dix dix)
     {
         if (pendingNewline)
         {
@@ -132,8 +117,10 @@ public class CSharpFormatter : AbstractFormatter<CSharpFormatter>
 
         pendingNewline = true;
 
-        base.Visit(dix);
+        var result = base.Visit(dix);
 
         writer.Write(")");
+
+        return result;
     }
 }

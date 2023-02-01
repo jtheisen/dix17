@@ -18,26 +18,13 @@ public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
         content?.Invoke(root);
     }
 
-    protected override Node? GetChild(Node parent, String name) => parent switch
-    {
-        DirectoryNode d => d.Children.GetValueOrDefault(name),
-        _ => null
-    };
-
     protected override Node GetRoot() => root;
-
-    protected override Dix GetTeaser(Dix dix, String name, Node node) => node switch
-    {
-        FileNode f => WithMetadata(D(name, f.Content), node),
-        DirectoryNode d => D(name, from e in d.Children select WithMetadata(D(e.Key), node)),
-        _ => dix.ErrorUnsupportedOperation()
-    };
 
     protected override Dix Remove(Dix dix, Node parentTarget, Node target)
     {
         if (parentTarget is DirectoryNode d && dix.Name is String name)
         {
-            d.Children.Remove(name);
+            d.Remove(name);
 
             return dix;
         }
@@ -62,11 +49,11 @@ public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
                 case MetadataConstants.FileSystemEntryFile:
                     if (dix.Unstructured is String u)
                     {
-                        node = new FileNode { Parent = parentTarget, Name = name, Content = u };
+                        node = new FileNode { Parent = parentTarget, Name = name, Unstructured = u };
                     }
                     else
                     {
-                        return dix.ErrorInternal();
+                        node = new FileNode { Parent = parentTarget, Name = name, Unstructured = "" };
                     }
                     break;
                 case MetadataConstants.FileSystemEntryDirectory:
@@ -76,7 +63,7 @@ public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
                     return dix.ErrorInternal();
             }
 
-            d.Children.Add(name, node);
+            d.Add(name, node);
 
             return dix;
         }
@@ -86,7 +73,19 @@ public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
         }
     }
 
-    public abstract class Node : INode
+    protected override Node? GetChild(Node parent, String name)
+    {
+        if (parent is DirectoryNode d)
+        {
+            return d[name];
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    public abstract class Node : INode<Node>
     {
         public Node? Parent { get; init; }
 
@@ -100,7 +99,9 @@ public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
 
         public virtual Node? this[String name] => throw new Exception($"Not a directory");
 
-        public virtual String Content { get => throw new Exception($"Not a file"); set { } }
+        public virtual String? Unstructured { get => null; set { } }
+
+        public virtual IEnumerable<Node>? Structured => throw new Exception($"Not a directory");
 
         public virtual DixMetadata Metadata => Dm(D(MetadataConstants.FileSystemEntry, EntryTypeMetadataValue));
     }
@@ -111,13 +112,29 @@ public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
 
         public override DixMetadata Metadata => Dm(base.Metadata, MdnCanInsert);
 
-        public Dictionary<String, Node> Children { get; } = new Dictionary<String, Node>();
+        List<String> childrenInOrder = new List<String>();
+        Dictionary<String, Node> childrenDict { get; } = new Dictionary<String, Node>();
 
-        public override Node? this[String name] => Children.GetValueOrDefault(name);
+        public override Node? this[String name] => childrenDict.GetValueOrDefault(name);
+
+        public override IEnumerable<Node>? Structured => from c in childrenInOrder select childrenDict[c];
+
+        public void Remove(String name)
+        {
+            childrenInOrder.Remove(name);
+            childrenDict.Remove(name);
+        }
+
+        public void Add(String name, Node node)
+        {
+            childrenInOrder.Add(name);
+            childrenDict.Add(name, node);
+        }
 
         public DirectoryNode AddFile(String name, String content)
         {
-            Children[name] = new FileNode { Parent = this, Name = name, Content = content };
+            childrenInOrder.Add(name);
+            childrenDict[name] = new FileNode { Parent = this, Name = name, Unstructured = content };
             return this;
         }
 
@@ -125,7 +142,8 @@ public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
         {
             var directory = new DirectoryNode() { Parent = this, Name = name };
             content(directory);
-            Children[name] = directory;
+            childrenInOrder.Add(name);
+            childrenDict[name] = directory;
             return this;
         }
     }
@@ -139,7 +157,7 @@ public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
     {
         public override String EntryTypeMetadataValue => MetadataConstants.FileSystemEntryFile;
 
-        public override String Content { get; set; } = "";
+        public override String? Unstructured { get; set; } = "";
 
         public override DixMetadata Metadata => Dm(base.Metadata, MdnCanUpdate, MdnCanRemove);
     }

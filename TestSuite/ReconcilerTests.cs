@@ -23,7 +23,9 @@ public class ReconcilerTests
     [TestMethod]
     public void TestCopying()
     {
-        reconciler.Copy(source.Reroot("src"), source.Reroot("docs"));
+        AmbientBreakOnError.Enable();
+
+        reconciler.Copy(source.Reroot("src"), source.Reroot("docs")).AssertSuccess();
 
         DixValidator.AssertEqual(
             D("query",

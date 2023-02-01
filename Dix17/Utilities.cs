@@ -82,4 +82,6 @@ public static class Utilities
     [DebuggerHidden]
     public static IEnumerable<Dix>? ConcatNullables(this IEnumerable<Dix>? source, IEnumerable<Dix>? more)
         => source is null ? more : more is null ? source : source.Concat(more);
+
+    public static T Apply<S, T>(this S source, Func<S, T> mapper) => mapper(source);
 }

@@ -55,7 +55,7 @@ public class FileSystemTests
     {
         source.Query(D("query", D("docs", +D("readme.md", "testcontent!", D(MetadataConstants.FileSystemEntry, MetadataConstants.FileSystemEntryFile)))));
 
-        Assert.AreEqual("testcontent!", source.Root["docs"]["readme.md"].Content);
+        Assert.AreEqual("testcontent!", source.Root["docs"]["readme.md"].Unstructured);
     }
 
     [TestMethod]

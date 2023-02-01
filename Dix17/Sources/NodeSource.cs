@@ -1,12 +1,19 @@
 ﻿namespace Dix17.Sources;
 
-public interface INode
+public interface INode<Node>
+    where Node : INode<Node>
 {
+    String? Name { get; }
+
     DixMetadata Metadata { get; }
+
+    String? Unstructured { get; }
+
+    IEnumerable<Node>? Structured { get; }
 }
 
 public abstract class NodeSource<Node> : ISource
-    where Node : class, INode
+    where Node : class, INode<Node>
 {
     public Dix Query(Dix dix)
     {
@@ -75,7 +82,21 @@ public abstract class NodeSource<Node> : ISource
 
     protected abstract Node? GetChild(Node parent, String name);
 
-    protected abstract Dix GetTeaser(Dix dix, String name, Node node);
+    protected virtual Dix GetTeaser(Dix dix, String name, Node node)
+    {
+        if (node.Unstructured is String unstructured)
+        {
+            return WithMetadata(D(name, unstructured), node);
+        }
+        else if (node.Structured is IEnumerable<Node> children)
+        {
+            return WithMetadata(D(name, from c in children select WithMetadata(D(c.Name), c)), node);
+        }
+        else
+        {
+            return WithMetadata(D(name), node);
+        }
+    }
 
     protected virtual Dix Update(Dix dix, Node? parentTarget, Node target)
     {
@@ -115,6 +136,6 @@ public abstract class NodeSource<Node> : ISource
     protected virtual Dix Insert(Dix dix, Node parentTarget) => dix.ErrorNotImplemented();
     protected virtual Dix Remove(Dix dix, Node parentTarget, Node target) => dix.ErrorNotImplemented();
 
-    protected virtual Dix UpdateStructured(Dix dix, Node parentTarget) => dix.ErrorNotImplemented();
-    protected virtual Dix UpdateUnstructured(Dix dix, Node parentTarget, String unstructured) => dix.ErrorNotImplemented();
+    protected virtual Dix UpdateStructured(Dix dix, Node target) => dix.ErrorNotImplemented();
+    protected virtual Dix UpdateUnstructured(Dix dix, Node target, String unstructured) => dix.ErrorNotImplemented();
 }

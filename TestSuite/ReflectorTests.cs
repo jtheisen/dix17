@@ -45,9 +45,13 @@ public class ReflectorTests
   query
     reflection:clr-type = TestSuite.ReflectorTests+TestType
     String
+      reflection:clr-type = System.String
     Boolean
+      reflection:clr-type = System.Boolean
     NestedObject
+      reflection:clr-type = TestSuite.ReflectorTests+NestedTestType
     Array
+      reflection:clr-type = System.Int32[]
 ".Frame(),
             source.Query(D("query")).Format().Frame()
         );
@@ -60,10 +64,10 @@ public class ReflectorTests
             D("query",
                 D("NestedObject",
                     D("reflection:clr-type", "TestSuite.ReflectorTests+NestedTestType"),
-                    D("Number"),
-                    D("DateTimeOffset")
-                )
-            ),
+                    D("Number",
+                        D("reflection:clr-type", "System.Int32")),
+                    D("DateTimeOffset",
+                        D("reflection:clr-type", "System.DateTimeOffset")))),
             source.Query(D("query", D("NestedObject"))),
             DixValidatorFlags.IgnoreExtraUnstructuredIfNullInExpected
         );
@@ -81,7 +85,7 @@ public class ReflectorTests
     [TestMethod]
     public void TestBooleanModification()
     {
-        source.Query(D("query", ~D("Boolean", "false")));
+        source.Query(D("query", ~D("Boolean", "false"))).AssertSuccess();
 
         Assert.AreEqual(false, testObject.Boolean);
     }

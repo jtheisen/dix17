@@ -80,9 +80,9 @@ public class Reconciler
 
         var operation = GetInnerOperations(DefaultQueryName, atSource, atTarget);
 
-        Console.WriteLine(atSource.Format());
-        Console.WriteLine(atTarget.Format());
-        Console.WriteLine(operation.Format());
+        //Console.WriteLine(atSource.Format());
+        //Console.WriteLine(atTarget.Format());
+        //Console.WriteLine(operation.Format());
 
         var result = target.Query(operation);
 
