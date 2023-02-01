@@ -47,7 +47,6 @@ public struct Dix
     public Dix? Nullify() => IsNaD ? null : this;
 
     public static Dix operator ~(Dix dix) => dix with { Operation = DixOperation.Update };
-    //public static Dix operator !(Dix dix) => dix with { Operation = DixOperation.Error };
     public static Dix operator +(Dix dix) => dix with { Operation = DixOperation.Insert };
     public static Dix operator -(Dix dix) => dix with { Operation = DixOperation.Remove };
 
@@ -270,8 +269,26 @@ public static partial class Extensions
     public static String FormatCSharp(this Dix dix)
         => CSharpFormatter.Format(dix);
 
+
+    public static Dix Error(this Dix dix, String message)
+        => D(dix.Name, D("s:error", message)) with { Operation = DixOperation.Error };
+
+    public static Dix ErrorNotImplemented(this Dix dix)
+        => dix.Error("not implemented");
+
+    public static Dix ErrorNoName(this Dix dix)
+        => dix.Error($"no name");
+
+    public static Dix ErrorInternal(this Dix dix)
+        => dix.Error($"internal error");
+
+    public static Dix ErrorUnsupportedOperation(this Dix dix)
+        => dix.Error($"unsupported operation {dix.Operation}");
+
     public static Dix WithError(this Dix dix, String message)
         => dix.AddMetadata(D("s:error", message)) with { Operation = DixOperation.Error };
+
+
 
     public static IEnumerable<Dix> WhereMetadata(this IEnumerable<Dix>? source)
         => source?.Where(d => d.Name?.IsMetadataName() ?? false) ?? Enumerable.Empty<Dix>();

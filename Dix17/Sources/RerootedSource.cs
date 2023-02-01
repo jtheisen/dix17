@@ -1,4 +1,6 @@
-﻿namespace Dix17;
+﻿using Dix17.Sources;
+
+namespace Dix17;
 
 public class RerootedSource : ISource
 {

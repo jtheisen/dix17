@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Reflection;
 
-namespace Dix17;
+namespace Dix17.Sources;
 
 public interface ISource
 {
@@ -39,7 +39,7 @@ public class TypeAwareness
 
     public TypeAwareness(params Assembly[] extraAssemblies)
     {
-        this.assemblies = new[] { typeof(String).Assembly }.Concat(extraAssemblies).ToArray();
+        assemblies = new[] { typeof(String).Assembly }.Concat(extraAssemblies).ToArray();
     }
 
     public String CreateText(Object instance)

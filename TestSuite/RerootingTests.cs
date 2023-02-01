@@ -1,4 +1,6 @@
-﻿namespace TestSuite;
+﻿using Dix17.Sources;
+
+namespace TestSuite;
 
 [TestClass]
 public class RerootingTests

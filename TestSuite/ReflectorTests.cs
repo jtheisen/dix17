@@ -1,3 +1,5 @@
+using Dix17.Sources;
+
 namespace TestSuite;
 
 public static class TestExtensions
