@@ -2,7 +2,7 @@
 
 public static class AdHocCreation
 {
-    public static readonly String DefaultQueryName = "query";
+    public const String DefaultQueryName = "query";
 
     public static Dix Dq() => D(DefaultQueryName);
 

@@ -6,6 +6,62 @@ public abstract class AbstractFormatter<D> : DixVisitor
     protected StringWriter writer = new StringWriter();
     protected Int32 level = 1;
 
+    static Char[] problematics = "\"\\".ToArray();
+
+    [Flags]
+    protected enum LiteralWritingFlags
+    {
+        SurroundInDoubleQuotesAlways = 1,
+        SurroundInDoubleQuotesWhenWithSurroundingWhitespace = 2,
+
+        AllowAtStrings = 4
+    }
+
+    Boolean HasSurroundingWhiteSpace(String s)
+    {
+        if (s.Length == 0) return false;
+        if (Char.IsWhiteSpace(s[0])) return true;
+        if (Char.IsWhiteSpace(s[^1])) return true;
+        return false;
+    }
+
+    protected void WriteSimpleLiteral(String text) => WriteLiteral(text, LiteralWritingFlags.SurroundInDoubleQuotesWhenWithSurroundingWhitespace);
+
+    protected void WriteLiteral(String? text, LiteralWritingFlags flags)
+    {
+        if (text is null) return;
+
+        var surroundInQuotes = flags.HasFlag(LiteralWritingFlags.SurroundInDoubleQuotesAlways) ||
+            (flags.HasFlag(LiteralWritingFlags.SurroundInDoubleQuotesWhenWithSurroundingWhitespace) && HasSurroundingWhiteSpace(text));
+
+        var useAtStrings = flags.HasFlag(LiteralWritingFlags.AllowAtStrings) && surroundInQuotes && text.IndexOfAny(problematics) >= 0;
+
+        if (useAtStrings)
+        {
+            writer.Write('@');
+        }
+
+        if (surroundInQuotes) writer.Write('"');
+
+        foreach (var c in text)
+        {
+            if (Char.IsControl(c))
+            {
+                writer.Write($@"\u{(int)c:x4}");
+            }
+            else if (c == '"')
+            {
+                writer.Write("\"\"");
+            }
+            else
+            {
+                writer.Write(c);
+            }
+        }
+
+        if (surroundInQuotes) writer.Write('"');
+    }
+
     public static String Format(Dix dix)
     {
         var formatter = new D();
@@ -44,7 +100,7 @@ public class SimpleFormatter : AbstractFormatter<SimpleFormatter>
 
         if (dix.Name is not null)
         {
-            writer.Write($"{dix.Name}");
+            WriteSimpleLiteral(dix.Name);
         }
         else
         {
@@ -55,14 +111,9 @@ public class SimpleFormatter : AbstractFormatter<SimpleFormatter>
         {
             writer.Write(" = ");
 
-            if (String.IsNullOrWhiteSpace(dix.Unstructured))
-            {
-                writer.WriteLine($"\"{dix.Unstructured}\"");
-            }
-            else
-            {
-                writer.WriteLine(dix.Unstructured);
-            }
+            WriteSimpleLiteral(dix.Unstructured);
+
+            writer.WriteLine();
         }
         else
         {
@@ -85,16 +136,23 @@ public class CSharpFormatter : AbstractFormatter<CSharpFormatter>
         _ => throw new Exception()
     };
 
-    Char[] problematics = "\"\\".ToArray();
-
-    String CreateStringLiteral(String? name)
-        => name is null ? "null" : name.IndexOfAny(problematics) >= 0 ? $"@\"{name.Replace("\"", "\"\"")}\"" : $"\"{name}\"";
-
     Boolean pendingNewline = false;
 
     public CSharpFormatter()
     {
         level = 3;
+    }
+
+    void WriteCSharpLiteral(String? text)
+    {
+        if (text is null)
+        {
+            writer.Write("null");
+        }
+        else
+        {
+            WriteLiteral(text, LiteralWritingFlags.SurroundInDoubleQuotesAlways | LiteralWritingFlags.AllowAtStrings);
+        }
     }
 
     public override Dix Visit(Dix dix)
@@ -108,11 +166,15 @@ public class CSharpFormatter : AbstractFormatter<CSharpFormatter>
         writer.Write(new String(' ', level * 4 - 1));
         writer.Write(GetOperatorCharacter(dix.Operation));
 
-        writer.Write($"D({CreateStringLiteral(dix.Name)}");
+        writer.Write($"D(");
+
+        WriteCSharpLiteral(dix.Name);
 
         if (dix.Unstructured is not null)
         {
-            writer.Write($", {CreateStringLiteral(dix.Unstructured)}");
+            writer.Write($", ");
+
+            WriteCSharpLiteral(dix.Unstructured);
         }
 
         pendingNewline = true;

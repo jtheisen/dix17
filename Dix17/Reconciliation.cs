@@ -1,4 +1,5 @@
 ﻿using Dix17.Sources;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Dix17;
 
@@ -68,6 +69,118 @@ public static partial class Extensions
 
         return inLhsOrBoth.Concat(inRhsButNotInLhs);
     }
+}
+
+public class NameStack : IDisposable
+{
+    private readonly Stack<String?> path = new Stack<String?>();
+
+    public Boolean TryGetNonNullArray([NotNullWhen(true)] out String[]? path)
+    {
+        var result = this.path.ToArray();
+
+        if (result.Contains(null))
+        {
+            path = null;
+            return false;
+        }
+        else
+        {
+            path = result!;
+            return true;
+        }
+    }
+
+    public Boolean IsEmpty => path.Count == 0;
+
+    public override String ToString() => String.Join("/", path);
+
+    public IDisposable Push(String? name)
+    {
+        path.Push(name);
+
+        return this;
+    }
+
+    void IDisposable.Dispose()
+    {
+        path.Pop();
+    }
+}
+
+public class RecursiveQueryRunner
+{
+    private readonly ISource source;
+    private readonly NameStack path;
+
+    Boolean hadError;
+
+    public RecursiveQueryRunner(ISource source)
+    {
+        this.source = source;
+        path = new NameStack();
+    }
+
+    public Dix Recurse(String? name = DefaultQueryName, Int32? maxLevel = null)
+    {
+        return Recurse(source.Query(D(name)), maxLevel);
+    }
+
+    Dix Recurse(Dix dix, Int32? maxLevel = null)
+    {
+        if (hadError)
+        {
+            return dix;
+        }
+        else if (dix.Operation == DixOperation.Error)
+        {
+            hadError = true;
+
+            return dix;
+        }
+        else if (maxLevel == 0)
+        {
+            return dix;
+        }
+        else if (dix.HasNilContent)
+        {
+            if (path.IsEmpty)
+            {
+                return dix.Error("Source returned a nil at the root");
+            }
+            else if (path.TryGetNonNullArray(out var properPath))
+            {
+                return new RecursiveQueryRunner(source.Reroot(properPath)).Recurse(dix.Name, maxLevel - 1);
+            }
+            else
+            {
+                return dix.Error($"Can recurse into a path with unnamed nodes");
+            }
+        }
+        else if (dix.Structure is IEnumerable<Dix> structure)
+        {
+            var result = new List<Dix>();
+
+            foreach (var d in structure)
+            {
+                using var _ = path.Push(d.Name);
+
+                result.Add(Recurse(d, maxLevel - 1));
+            }
+
+            return dix.WithStructure(result);
+        }
+        else
+        {
+            return dix;
+        }
+    }
+}
+
+public static partial class Extensions
+{
+    public static Dix QueryRecursively(this ISource source, Int32? maxLevel = null)
+        => new RecursiveQueryRunner(source).Recurse(maxLevel: maxLevel);
 }
 
 public class Reconciler

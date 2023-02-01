@@ -222,7 +222,7 @@ public static partial class Extensions
         => dix.GetMetadata(name) is Dix d && d.Unstructured == value;
 
     public static Dix WithStructure(this Dix dix, IEnumerable<Dix> structure)
-        => dix with { Content = new CDixContent(dix.Unstructured, structure, dix.Metadata, dix.Context) };
+        => dix with { Content = new CDixContent(dix.Unstructured, structure.ToArray(), dix.Metadata, dix.Context) };
 
     public static Dix AddStructure(this Dix dix, IEnumerable<Dix> structure)
         => dix with { Content = new CDixContent(dix.Unstructured, dix.Structure?.ConcatNullables(structure), dix.Metadata, dix.Context) };

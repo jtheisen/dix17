@@ -36,18 +36,18 @@ public abstract class NodeSource<Node> : ISource
 
     Dix Process(Dix dix, Node? parentTarget, Node? target) => dix.Operation switch
     {
-        DixOperation.Select => Select(dix, target),
+        DixOperation.Select => Select(dix, parentTarget, target),
         DixOperation.Update => target is Node n ? Update(dix, parentTarget, n) : dix.Error($"No node to update for {dix.Name}"),
         DixOperation.Insert => InsertInternal(dix, parentTarget, target),
         DixOperation.Remove => RemoveInternal(dix, parentTarget, target),
         _ => dix.ErrorUnsupportedOperation()
     };
 
-    Dix Select(Dix dix, Node? target)
+    Dix Select(Dix dix, Node? parentNode, Node? target)
     {
         if (target is null)
         {
-            return D(dix.Name).WithError("no such entry");
+            return D(dix.Name).WithError($"no such entry in {parentNode}");
         }
         else if (dix.IsLeaf())
         {

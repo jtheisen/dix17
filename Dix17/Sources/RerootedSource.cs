@@ -11,6 +11,8 @@ public class RerootedSource : ISource
     {
         this.nested = nested;
         this.path = path;
+
+        if (path.Length == 0) throw new Exception("Path must have at least one item");
     }
 
     Dix GetDix(Dix content)
@@ -48,5 +50,5 @@ public class RerootedSource : ISource
 public static partial class Extensions
 {
     public static ISource Reroot(this ISource source, params String[] path)
-        => new RerootedSource(source, path);
+        => path.Length > 0 ? new RerootedSource(source, path) : source;
 }

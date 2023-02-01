@@ -1,4 +1,5 @@
-﻿using Dix17.Sources;
+﻿using Dix17;
+using Dix17.Sources;
 
 namespace TestSuite;
 
@@ -14,7 +15,7 @@ public class FileSystemTests
             .AddDirectory("docs", c2 => c2
                 .AddFile("tutorial.md", "todo"))
             .AddDirectory("src", c2 => c2
-                .AddFile("core.cs", "throw new NotImplementedException()")
+                .AddFile("core.cs", "DoReallySmartStuff()")
                 .AddFile("extensions.cs", "// todo"))
         );
     }
@@ -45,6 +46,21 @@ public class FileSystemTests
                     D("extensions.cs",
                         D("fs:entry", "file")))),
             source.Query(D("query", D("src"))).RecursivelyRemoveMetadataExcept("fs")
+        );
+    }
+
+    [TestMethod]
+    public void TestRecursion()
+    {
+        DixValidator.AssertEqual(
+            D("query",
+                D(".gitignore", "bin\u000aobj"),
+                D("docs",
+                    D("tutorial.md", "todo")),
+                D("src",
+                    D("core.cs", "DoReallySmartStuff()"),
+                    D("extensions.cs", "// todo"))),
+            source.QueryRecursively().RecursivelyRemoveMetadata()
         );
     }
 
