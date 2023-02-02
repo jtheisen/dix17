@@ -115,6 +115,10 @@ public class SimpleFormatter : AbstractFormatter<SimpleFormatter>
 
             writer.WriteLine();
         }
+        else if (dix.HasEmptyContent)
+        {
+            writer.WriteLine(" empty");
+        }
         else
         {
             writer.WriteLine();

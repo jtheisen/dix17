@@ -33,7 +33,7 @@ public class ReconcilerTests
                     D("tutorial.md"),
                     D("core.cs"),
                     D("extensions.cs"))),
-            source.Query(Dq(Dc("docs"))).RecursivelyRemoveMetadata()
+            source.Query(D("docs")).RecursivelyRemoveMetadata()
         );
     }
 }

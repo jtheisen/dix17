@@ -109,6 +109,8 @@ public class DixValidator
 
             Console.WriteLine($"Actual result in CSharp:\n\n{actual.FormatCSharp()}");
 
+            Console.WriteLine($"Expected was:\n\n{expected.Format()}");
+
             throw;
         }
     }

@@ -1,6 +1,4 @@
-﻿using static Dix17.MetadataForSources;
-
-namespace Dix17.Sources;
+﻿namespace Dix17.Sources;
 
 public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
 {
@@ -38,15 +36,13 @@ public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
     {
         if (parentTarget is DirectoryNode d && dix.Name is String name)
         {
-            var t = dix.GetMetadataValue(MetadataConstants.FileSystemEntry);
-
-            if (t is null) return dix.ErrorInternal();
+            if (!dix.TryGetMetadataFlag<FileSystemFlags>(out var entryType)) return dix.ErrorInternal();
 
             Node node;
 
-            switch (t)
+            switch (entryType)
             {
-                case MetadataConstants.FileSystemEntryFile:
+                case FileSystemFlags.File:
                     if (dix.Unstructured is String u)
                     {
                         node = new FileNode { Parent = parentTarget, Name = name, Unstructured = u };
@@ -56,7 +52,7 @@ public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
                         node = new FileNode { Parent = parentTarget, Name = name, Unstructured = "" };
                     }
                     break;
-                case MetadataConstants.FileSystemEntryDirectory:
+                case FileSystemFlags.Directory:
                     node = new DirectoryNode() { Parent = parentTarget, Name = name };
                     break;
                 default:
@@ -95,22 +91,18 @@ public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
 
         public override String ToString() => Path;
 
-        public abstract String EntryTypeMetadataValue { get; }
-
         public virtual Node? this[String name] => throw new Exception($"Not a directory");
 
         public virtual String? Unstructured { get => null; set { } }
 
         public virtual IEnumerable<Node>? Structured => throw new Exception($"Not a directory");
 
-        public virtual DixMetadata Metadata => Dm(D(MetadataConstants.FileSystemEntry, EntryTypeMetadataValue));
+        public abstract DixMetadata Metadata { get; }
     }
 
     public class DirectoryNode : Node
     {
-        public override String EntryTypeMetadataValue => MetadataConstants.FileSystemEntryDirectory;
-
-        public override DixMetadata Metadata => Dm(base.Metadata, MdnCanInsert);
+        public override DixMetadata Metadata => Dm(Dmf(FileSystemFlags.Directory), Dmf(SourceFlags.CanInsert));
 
         List<String> childrenInOrder = new List<String>();
         Dictionary<String, Node> childrenDict { get; } = new Dictionary<String, Node>();
@@ -155,10 +147,8 @@ public class MockupFileSystemSource : NodeSource<MockupFileSystemSource.Node>
 
     public class FileNode : Node
     {
-        public override String EntryTypeMetadataValue => MetadataConstants.FileSystemEntryFile;
-
         public override String? Unstructured { get; set; } = "";
 
-        public override DixMetadata Metadata => Dm(base.Metadata, MdnCanUpdate, MdnCanRemove);
+        public override DixMetadata Metadata => Dm(Dmf(FileSystemFlags.File), Dmf(SourceFlags.CanUpdate), Dmf(SourceFlags.CanRemove));
     }
 }

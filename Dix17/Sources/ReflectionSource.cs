@@ -99,7 +99,7 @@ public class DotnetNode : INode<DotnetNode>
 
     public Type Type { get; }
 
-    public DixMetadata Metadata => Dm(D(MetadataConstants.ReflectedClrType, Type.FullName!));
+    public DixMetadata Metadata => Dm(MdnReflectedClrType, Type.FullName!);
 
     public String? Unstructured => IsUnstructured && Target is not null ? typeAwareness.CreateText(Target) : null;
 
@@ -122,6 +122,8 @@ public class DotnetNode : INode<DotnetNode>
 
     public DotnetNode? GetChild(String name)
     {
+        if (name == "SyncRoot") Debugger.Break();
+
         var property = Type.GetProperty(name);
 
         if (property is null) return null;
@@ -171,99 +173,8 @@ public class ReflectionSource : NodeSource<DotnetNode>
 
     Object CreateObject(Dix dix, Type type)
     {
-        var clrType = dix.GetMetadataValue(MetadataConstants.ReflectedClrType);
+        var clrType = dix.GetMetadataValue(MdnReflectedClrType);
 
         return typeAwareness.CreateObject(type, dix.Unstructured, clrType);
     }
-}
-
-public class ReflectionSource2 : ISource
-{
-    private readonly Object target;
-    private readonly TypeAwareness typeAwareness;
-
-    public ReflectionSource2(Object target, TypeAwareness typeAwareness)
-    {
-        this.target = target;
-        this.typeAwareness = typeAwareness;
-    }
-
-    public Dix Query(Dix dix)
-    {
-        return Process(dix, null, target);
-    }
-
-    Dix Process(Dix dix, Object? parentTarget, Object target) => dix.Operation switch
-    {
-        DixOperation.Select => dix.IsLeaf()
-            ? GetDixTeaser(dix.Name, target)
-            : D(dix.Name,
-                from d in dix.Structure
-                select Process(d, target, d.Name)
-            ),
-        DixOperation.Update => Update(dix, parentTarget ?? throw new Exception("root can't be updated")),
-        DixOperation.Insert => Insert(dix, target),
-        DixOperation.Remove => Remove(dix, target),
-        _ => throw new Exception($"Unsupported operation {dix.Operation}")
-    };
-
-    Dix Process(Dix dix, Object parentTarget, String? propertyName)
-    {
-        var type = target.GetType();
-
-        var property = type.GetProperty(propertyName);
-
-        var value = property.GetValue(parentTarget);
-
-        return Process(dix, parentTarget, value);
-    }
-
-    Dix GetDixTeaser(String? name, Object? target)
-    {
-        if (target is null)
-        {
-            return D(name, D(MetadataConstants.ReflectedType, MetadataConstants.ReflectedTypeNull));
-        }
-        else
-        {
-            var type = target.GetType();
-
-            var unstructured = target.ToString();
-
-            var structure = (from p in type.GetProperties() select D(p.Name)).ToArray();
-
-            return D(name,
-                structure.Length == 0 ? unstructured : null,
-                from p in type.GetProperties() select D(p.Name),
-                D(MetadataConstants.ReflectedClrType, type.FullName!).Singleton()
-            );
-        }
-    }
-
-    Object CreateObject(Dix dix, Type type)
-    {
-        var clrType = dix.GetMetadataValue(MetadataConstants.ReflectedClrType);
-
-        return typeAwareness.CreateObject(type, dix.Unstructured, clrType);
-    }
-
-    Dix Update(Dix dix, Object target)
-    {
-        var type = target.GetType();
-
-        var name = dix.Name;
-
-        if (name is null) throw new Exception();
-
-        var property = type.GetProperty(name);
-
-        if (property is null) throw new Exception($"No property {name} on {type.FullName}");
-
-        property?.SetValue(target, CreateObject(dix, property.PropertyType));
-
-        return dix;
-    }
-
-    Dix Insert(Dix dix, Object target) => throw new NotImplementedException();
-    Dix Remove(Dix dix, Object target) => throw new NotImplementedException();
 }

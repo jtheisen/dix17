@@ -1,3 +1,5 @@
+using Dix17;
+
 namespace TestSuite;
 
 [TestClass]
@@ -61,9 +63,8 @@ public class FormattingTests
                 D("some-string", "foo"),
                 D("some-list",
                     D("item1"),
-                    D("item2"),
-                    D("x:list")
-                )
+                    D("item2")
+                ).WithMetadata(Dm("x:list"))
             ).Format().Frame()
         );
     }

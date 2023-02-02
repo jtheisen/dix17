@@ -1,5 +1,5 @@
-﻿using Dix17;
-using Dix17.Sources;
+﻿using Dix17.Sources;
+using System.Security.Cryptography;
 
 namespace TestSuite;
 
@@ -25,12 +25,13 @@ public class FileSystemTests
     {
         DixValidator.AssertEqual(
             D("query",
+                Dm("fs:directory"),
                 D(".gitignore",
-                    D("fs:entry", "file")),
+                    Dm("fs:file")),
                 D("docs",
-                    D("fs:entry", "directory")),
+                    Dm("fs:directory")),
                 D("src",
-                    D("fs:entry", "directory"))),
+                    Dm("fs:directory"))),
             source.Query(D("query")).RecursivelyRemoveMetadataExcept("fs")
         );
     }
@@ -41,10 +42,11 @@ public class FileSystemTests
         DixValidator.AssertEqual(
             D("query",
                 D("src",
+                    Dm("fs:directory"),
                     D("core.cs",
-                        D("fs:entry", "file")),
+                        Dm("fs:file")),
                     D("extensions.cs",
-                        D("fs:entry", "file")))),
+                        Dm("fs:file")))),
             source.Query(D("query", D("src"))).RecursivelyRemoveMetadataExcept("fs")
         );
     }
@@ -69,7 +71,7 @@ public class FileSystemTests
     [TestMethod]
     public void TestInsertion()
     {
-        source.Query(D("query", D("docs", +D("readme.md", "testcontent!", D(MetadataConstants.FileSystemEntry, MetadataConstants.FileSystemEntryFile)))));
+        source.Query(D("query", D("docs", +D("readme.md", "testcontent!", Dmf(FileSystemFlags.File)))));
 
         Assert.AreEqual("testcontent!", source.Root["docs"]["readme.md"].Unstructured);
     }

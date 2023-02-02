@@ -6,60 +6,75 @@ public static class AdHocCreation
 
     public static Dix Dq() => D(DefaultQueryName);
 
-    public static Dix Dq(DixContent content) => D(DefaultQueryName, content);
+    public static Dix Dq(DixStructure structure) => D(DefaultQueryName, structure);
 
 
-    public static Dix D(String? name, IDixContext? context, String? unstructured, IEnumerable<Dix>? children)
-        => new Dix { Operation = DixOperation.Select, Name = name, Content = new CDixContent(unstructured, children.WhereStructure().ToArray(), children.WhereMetadata().ToArray(), context) };
+    public static Dix D(String? name)
+        => new Dix { Operation = DixOperation.Select, Name = name };
 
-    [DebuggerHidden]
-    public static Dix D(String? name, String unstructured, params Dix[] children)
-        => D(name, unstructured, children.OfType<Dix>());
+    public static Dix D(String? name, DixContent content)
+        => new Dix { Operation = DixOperation.Select, Name = name, Content = new CDixContent(content.Unstructured, content.Structure, content.Metadata, content.Context) };
 
-    public static Dix D(String? name, String unstructured, IEnumerable<Dix> children, IDixContext? context = null)
-        => D(name, context, unstructured, children);
+    public static Dix D(String? name, DixMetadata metadata, IDixContext? context = null)
+        => new Dix { Operation = DixOperation.Select, Name = name, Content = new CDixContent(null, null, metadata.Metadata, context) };
 
-    public static Dix D(String? name, IEnumerable<Dix> children, IDixContext? context = null)
-        => D(name, context, null, children);
+    public static Dix D(String? name, String unstructured, DixMetadata metadata = default, IDixContext? context = null)
+        => new Dix { Operation = DixOperation.Select, Name = name, Content = new CDixContent(unstructured, null, metadata.Metadata, context) };
 
-    public static Dix D(String? name, String? unstructured, IEnumerable<Dix> children, IEnumerable<Dix> moreChildren, IDixContext? context = null)
-        => D(name, context, unstructured, children.Concat(moreChildren));
+    public static Dix D(String? name, IEnumerable<Dix> structure, DixMetadata metadata = default, IDixContext? context = null)
+        => new Dix { Operation = DixOperation.Select, Name = name, Content = new CDixContent(null, structure, metadata.Metadata, context) };
 
-    public static Dix D(String? name, IEnumerable<Dix> children, IEnumerable<Dix> moreChildren, IDixContext? context = null)
-        => D(name, context, null, children.Concat(moreChildren));
+    public static Dix D(String? name, DixMetadata metadata, params Dix[] structured)
+        => D(name, structured, metadata, null);
 
-    public static Dix D(String? name, IEnumerable<Dix> children, params Dix[] moreChildren)
-        => D(name, children.Concat(moreChildren).ToArray());
+    public static Dix D(String? name, params Dix[] structured)
+        => D(name, structured, default, null);
 
-    public static Dix D(String? name, params Dix[] children)
-        => D(name, children.OfType<Dix>());
-
-    public static Dix D(String? name, String unstructured, IDixContext? context = null)
-        => D(name, context, unstructured, null);
-
-    public static Dix D(String? name, DixContent content, IDixContext? context = null)
-        => D(name, context, null, content.Children);
+    public static Dix D(String? name, DixStructure structure, DixMetadata metadata = default, IDixContext? context = null)
+        => D(name, structure.Structure, metadata, context);
 
 
-    public static DixContent Dc(IDixContext? context, String? unstructured, IEnumerable<Dix>? children)
-        => new DixContent { Content = new CDixContent(unstructured, children.WhereStructure(), children.WhereMetadata(), context) };
+    public static DixMetadata Dm(String? name)
+        => new DixMetadata(D(name.AssertMetadataName()).Singleton());
 
-    public static DixContent Dc(params String[] children)
-        => Dc((IDixContext?)null, null, children.Select(n => D(n)));
+    public static DixMetadataFlag Dmf(String? name)
+        => new DixMetadataFlag(name.AssertMetadataName());
 
-    public static DixContent Dc(params Dix[] children)
-        => Dc((IDixContext?)null, null, children.OfType<Dix>());
+    public static DixMetadataFlag Dmf<E>(E flag)
+        where E : struct, Enum
+        => MetadataEnum.GetMetadata(flag);
+
+    public static DixContent Dc(IEnumerable<Dix> content)
+        => new DixContent { Content = new CDixContent(null, content.WhereStructure(), content.WhereMetadata(), null) };
+
+    public static DixMetadata Dm(String? name, String unstructured)
+        => new DixMetadata(D(name.AssertMetadataName(), unstructured).Singleton());
+
+    public static DixMetadata Dm(params DixMetadata[] metadata)
+        => new DixMetadata(metadata.SelectMany(m => m.Metadata ?? Enumerable.Empty<Dix>()));
+
+    public static DixMetadata Dmc(params Object[] children)
+        => new DixMetadata(children.SelectMany(CollectMetadata).SelectMany(m => m.Metadata ?? Enumerable.Empty<Dix>()).ToArray());
+
+    //public static DixStructure Ds(params Object[] children)
+    //    => new DixStructure(children.Select(c => CollectDixes(c, false)).SelectMany(c => c));
 
 
-    public static DixMetadata Dm(params Object[] children)
-        => new DixMetadata(children.Select(c => GetDixMetadata(c)).SelectMany(c => c));
-
-    static IEnumerable<Dix>? GetDixMetadata(Object child) => child switch
+    static IEnumerable<DixMetadata> CollectMetadata(Object? target)
     {
-        null => null,
-        String s => D(s).Singleton(),
-        DixMetadata dm => dm.Metadata,
-        Dix d => d.Singleton(),
-        _ => throw new Exception($"Unsupported content type {child.GetType()}")
-    };
+        if (target is null) yield break;
+
+        if (target is String s)
+        {
+            yield return Dm(s.AssertMetadataName());
+        }
+        else if (target is DixMetadata dm)
+        {
+            yield return dm;
+        }
+        else
+        {
+            throw new Exception($"Unsupported content type {target.GetType()}");
+        }
+    }
 }

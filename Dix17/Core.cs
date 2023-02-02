@@ -40,6 +40,8 @@ public struct Dix
 
     public Dix? GetMetadata(String name) => Content?.GetMetadata(name);
 
+    public IEnumerable<Dix> GetMetadataWithPrefix(String prefix) => Content?.GetMetadataWithPrefix(prefix) ?? Enumerable.Empty<Dix>();
+
     public Dix WithName(String? name) => this with { Name = name };
     public Dix WithoutOperation() => this with { Operation = DixOperation.Select };
     public Dix WithError() => this with { Operation = DixOperation.Error };
@@ -90,6 +92,18 @@ public struct DixContent
     public IEnumerable<Dix> Metadata => Content?.Metadata ?? Enumerable.Empty<Dix>();
 }
 
+public struct DixMetadataFlag
+{
+    public String Name { get; }
+
+    public DixMetadataFlag(String name)
+    {
+        Name = name;
+    }
+
+    public static implicit operator DixMetadata(DixMetadataFlag value) => new DixMetadata(D(value.Name).Singleton());
+}
+
 public struct DixMetadata
 {
     public IEnumerable<Dix>? Metadata { get; set; }
@@ -101,6 +115,27 @@ public struct DixMetadata
 
     public static DixMetadata operator +(DixMetadata lhs, DixMetadata rhs)
         => new DixMetadata(lhs.Metadata.ConcatNullables(rhs.Metadata));
+
+    public static DixMetadata operator +(DixMetadata lhs, DixMetadataFlag flag)
+        => new DixMetadata(lhs.Metadata.ConcatNullables(Dm(flag.Name).Metadata));
+
+    public static DixMetadata operator +(DixMetadata lhs, String flag)
+        => lhs + Dmf(flag.AssertMetadataName());
+}
+
+public struct DixStructure
+{
+    IEnumerable<Dix>? structure;
+
+    public IEnumerable<Dix> Structure => structure ?? Enumerable.Empty<Dix>();
+
+    public DixStructure(IEnumerable<Dix>? structure)
+    {
+        this.structure = structure;
+    }
+
+    public static DixStructure operator +(DixStructure lhs, DixStructure rhs)
+        => new DixStructure(lhs.Structure.ConcatNullables(rhs.Structure));
 }
 
 public interface IDixContext
@@ -133,11 +168,13 @@ public class CDixContent : IDixContent
 
     public IDixContext? Context { get; }
 
-    public Boolean HasStructure => Structure?.Any() ?? false;
+    public Boolean HasStructure => Structure is not null;
 
     public Boolean IsNilContent => Unstructured is null && !HasStructure;
 
-    public Boolean IsEmptyContent => Unstructured == "" || (Unstructured is null && !HasStructure);
+    public Boolean IsEmptyContent => Unstructured == "" || (Structure is not null && !Structure.Any());
+
+    public IEnumerable<Dix> GetMetadataWithPrefix(String prefix) => Metadata?.WithPrefix(prefix) ?? Enumerable.Empty<Dix>();
 
     public Dix? GetMetadata(String name)
     {
@@ -171,8 +208,8 @@ public class CDixContent : IDixContent
     public CDixContent(String? unstructured, IEnumerable<Dix>? structured, IEnumerable<Dix>? metadata, IDixContext? context)
     {
         Unstructured = unstructured;
-        Structure = structured;
-        Metadata = metadata;
+        Structure = structured?.ToArray();
+        Metadata = metadata?.ToArray();
         Context = context;
 
         if (Unstructured is not null && HasStructure) throw new Exception($"Can't have structured and unstructured data at once");
@@ -191,11 +228,17 @@ public interface IStructureAwareness
 
 public static partial class Extensions
 {
-    public static Boolean IsMetadataName(this String name)
-        => name.Contains(':');
+    public static Boolean IsMetadataName(this String? name)
+        => name?.Contains(':') ?? false;
+
+    public static String AssertMetadataName(this String? name)
+        => name.IsMetadataName() ? name! : throw new Exception($"Expected name '{name}' to be a metadata name");
 
     public static Boolean HasMetadataPrefix(this String? name, String prefix)
-        => name is not null && name.Length > prefix.Length + 1 && name.StartsWith(prefix) && name[prefix.Length + 1] == ':';
+        => name is not null && name.Length > prefix.Length + 1 && name.StartsWith(prefix) && name[prefix.Length] == ':';
+
+    public static IEnumerable<Dix> WithPrefix(this IEnumerable<Dix> metadata, String prefix)
+        => metadata.Where(d => d.Name.HasMetadataPrefix(prefix));
 
     public static IEnumerable<Dix> GetStructure(this Dix dix)
         => dix.Structure ?? Enumerable.Empty<Dix>();
@@ -213,13 +256,16 @@ public static partial class Extensions
         => dix.GetMetadata().SingleOrDefault(d => d.Name == name).Unstructured;
 
     public static Boolean HasMetadataFlag(this Dix dix, String name)
-        => dix.GetMetadata(name) is not null;
+        => dix.GetMetadata(name.AssertMetadataName()) is not null;
+
+    public static Boolean HasMetadataFlag(this Dix dix, DixMetadataFlag flag)
+        => dix.GetMetadata(flag.Name) is not null;
 
     public static Boolean HasMetadata(this Dix dix, Dix metadata)
-        => dix.GetMetadata(metadata.Name!) is Dix d && d.Unstructured == metadata.Unstructured;
+        => dix.GetMetadata(metadata.Name.AssertMetadataName()) is Dix d && d.Unstructured == metadata.Unstructured;
 
     public static Boolean HasMetadataValue(this Dix dix, String name, String value)
-        => dix.GetMetadata(name) is Dix d && d.Unstructured == value;
+        => dix.GetMetadata(name.AssertMetadataName()) is Dix d && d.Unstructured == value;
 
     public static Dix WithStructure(this Dix dix, IEnumerable<Dix> structure)
         => dix with { Content = new CDixContent(dix.Unstructured, structure.ToArray(), dix.Metadata, dix.Context) };

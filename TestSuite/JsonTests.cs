@@ -22,27 +22,27 @@ public class JsonTests
         Assert.AreEqual(
             @"
   structurized
-    x:json-type = object
+    json:type:object
     some-bool = True
-      x:json-type = boolean
+      json:type:boolean
     some-null = null
-      x:json-type = null
+      json:type:null
     some-array
-      x:json-type = array
+      json:type:array
       - = 42
-        x:json-type = number
+        json:type:number
       - = null
-        x:json-type = null
+        json:type:null
       - = True
-        x:json-type = boolean
+        json:type:boolean
       - = text
-        x:json-type = string
+        json:type:string
       -
-        x:json-type = object
+        json:type:object
       -
-        x:json-type = array
+        json:type:array
     empty-object
-      x:json-type = object
+      json:type:object
 ".Frame(),
             json.Structurize(testJson).Format().Frame()
         );

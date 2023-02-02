@@ -73,7 +73,9 @@ public abstract class NodeSource<Node> : ISource
             let c = name is not null ? GetChild(target, name) : null
             select name is not null ? Process(d, target, c) : d.ErrorNoName();
 
-        return Dc(content.ToArray());
+        var a = content.ToArray();
+
+        return Dc(a);
     }
 
     protected virtual DixContent GetTopLevelMetadata() => default;

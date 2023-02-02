@@ -63,16 +63,32 @@ public class ReflectorTests
         DixValidator.AssertEqual(
             D("query",
                 D("NestedObject",
-                    D("reflection:clr-type", "TestSuite.ReflectorTests+NestedTestType"),
+                    Dm("reflection:clr-type", "TestSuite.ReflectorTests+NestedTestType"),
                     D("Number",
-                        D("reflection:clr-type", "System.Int32")),
+                        Dm("reflection:clr-type", "System.Int32")),
                     D("DateTimeOffset",
-                        D("reflection:clr-type", "System.DateTimeOffset")))),
+                        Dm("reflection:clr-type", "System.DateTimeOffset")))),
             source.Query(D("query", D("NestedObject"))),
             DixValidatorFlags.IgnoreExtraUnstructuredIfNullInExpected
         );
     }
 
+    [TestMethod]
+    public void TestRecursion()
+    {
+        AmbientBreakOnError.Enable();
+
+        DixValidator.AssertEqual(
+            D("query",
+                D(".gitignore", "bin\u000aobj"),
+                D("docs",
+                    D("tutorial.md", "todo")),
+                D("src",
+                    D("core.cs", "DoReallySmartStuff()"),
+                    D("extensions.cs", "// todo"))),
+            source.QueryRecursively().RecursivelyRemoveMetadata()
+        );
+    }
 
     [TestMethod]
     public void TestStringModification()

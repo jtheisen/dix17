@@ -10,8 +10,8 @@ public class MetadataRuleTests
     {
         rules = new[]
         {
-            new MetadataRule(Dc(D("x:flag")), Dc(D("x:implied-flag"))),
-            new MetadataRule(Dc(D("x:type", "foo")), Dc(D("x:type-foo")))
+            new MetadataRule(Dmf("x:flag"), Dmf("x:implied-flag")),
+            new MetadataRule(Dm("x:type", "foo"), Dmf("x:type-foo"))
         };
 
         provider = new MetadataRuleSet(rules);
@@ -20,7 +20,7 @@ public class MetadataRuleTests
     [TestMethod]
     public void TestFlagMetadata()
     {
-        var dix = D("item", D("x:flag")).WithContext(provider);
+        var dix = D("item", Dmf("x:flag")).WithContext(provider);
 
         Assert.IsTrue(dix.HasMetadataFlag("x:flag"));
         Assert.IsTrue(dix.HasMetadataFlag("x:implied-flag"));
@@ -30,7 +30,7 @@ public class MetadataRuleTests
     [TestMethod]
     public void TestValueMetadata()
     {
-        var dix = D("item", D("x:type", "foo")).WithContext(provider);
+        var dix = D("item", Dm("x:type", "foo")).WithContext(provider);
 
         Assert.IsFalse(dix.HasMetadataFlag("x:flag"));
         Assert.IsFalse(dix.HasMetadataFlag("x:implied-flag"));

@@ -98,8 +98,8 @@ public class ValidationTests
                 D("item2")
             ),
             D("root",
+                Dmf("x:mystery"),
                 D("item1"),
-                D("x:mystery"),
                 D("item2")
             ),
             DixValidatorFlags.IgnoreExtraMetadataOnActual
