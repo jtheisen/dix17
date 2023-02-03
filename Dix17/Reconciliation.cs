@@ -154,7 +154,7 @@ public class RecursiveQueryRunner
             }
             else
             {
-                return dix.Error($"Can recurse into a path with unnamed nodes");
+                return dix.Error($"Can't recurse into a path with unnamed nodes");
             }
         }
         else if (dix.Structure is IEnumerable<Dix> structure)

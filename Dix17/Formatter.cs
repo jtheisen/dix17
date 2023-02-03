@@ -107,17 +107,17 @@ public class SimpleFormatter : AbstractFormatter<SimpleFormatter>
             writer.Write("-");
         }
 
-        if (dix.Unstructured is not null)
+        if (dix.HasEmptyContent)
+        {
+            writer.WriteLine(" empty");
+        }
+        else if (dix.Unstructured is not null)
         {
             writer.Write(" = ");
 
             WriteSimpleLiteral(dix.Unstructured);
 
             writer.WriteLine();
-        }
-        else if (dix.HasEmptyContent)
-        {
-            writer.WriteLine(" empty");
         }
         else
         {

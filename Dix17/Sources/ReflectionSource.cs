@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Collections;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Reflection;
 using static Dix17.Sources.MockupFileSystemSource;
@@ -86,25 +87,43 @@ public class TypeAwareness
     }
 }
 
+public enum DotnetNodeType
+{
+    Unknown,
+    Object,
+    Collection,
+    Value
+}
+
 public class DotnetNode : INode<DotnetNode>
 {
     private readonly TypeAwareness typeAwareness;
     private readonly PropertyInfo[]? properties;
 
-    Boolean IsUnstructured => properties is null;
+    Boolean IsUnstructured => NodeType == DotnetNodeType.Value;
 
-    public String? Name { get; set; }
+    public String? Name { get; }
 
     public Object? Target { get; }
 
+    public DotnetNodeType NodeType { get; }
+
     public Type Type { get; }
+
+    public Type? CollectionItemType { get; }
 
     public DixMetadata Metadata => Dm(MdnReflectedClrType, Type.FullName!);
 
     public String? Unstructured => IsUnstructured && Target is not null ? typeAwareness.CreateText(Target) : null;
 
-    public IEnumerable<DotnetNode>? Structured
-        => properties is not null ? from p in properties select GetChild(p) : null;
+    public IEnumerable<DotnetNode>? Structured => NodeType switch
+    {
+        DotnetNodeType.Object => from p in properties select GetChild(p),
+        DotnetNodeType.Collection => Target is IEnumerable e
+            ? from i in e.Cast<Object>() select new DotnetNode(null, i, CollectionItemType!, typeAwareness)
+            : Enumerable.Empty<DotnetNode>(),
+        _ => null
+    };
 
     public DotnetNode(String? name, Object? target, Type type, TypeAwareness typeAwareness)
     {
@@ -114,16 +133,26 @@ public class DotnetNode : INode<DotnetNode>
 
         this.typeAwareness = typeAwareness;
 
-        if (!typeAwareness.CanConvert(type))
+        if (typeAwareness.CanConvert(type))
+        {
+            NodeType = DotnetNodeType.Value;
+        }
+        else if (type.TryGetCollectionItemType(out var itemType))
+        {
+            CollectionItemType = itemType;
+
+            NodeType = DotnetNodeType.Collection;
+        }
+        else
         {
             properties = type.GetProperties();
+
+            NodeType = DotnetNodeType.Object;
         }
     }
 
     public DotnetNode? GetChild(String name)
     {
-        if (name == "SyncRoot") Debugger.Break();
-
         var property = Type.GetProperty(name);
 
         if (property is null) return null;
